@@ -1,0 +1,8 @@
+---
+- name: "{{ runner.name }}: stopped and not started at boot"
+  ansible.builtin.systemd_service:
+    name: "{{ runner.unit }}"
+    state: stopped
+    enabled: false
+  register: ci_runners_retired_result
+  failed_when: ci_runners_retired_result.failed | default(false) and 'Could not find' not in (ci_runners_retired_result.msg | default(''))

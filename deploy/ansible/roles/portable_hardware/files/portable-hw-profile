@@ -1,0 +1,22 @@
+#!/bin/bash
+set -u
+
+dmi() { cat "/sys/class/dmi/id/$1" 2>/dev/null; }
+
+vendor=$(dmi sys_vendor)
+ident="$(dmi product_name) $(dmi product_family) $(dmi product_version)"
+
+case "$vendor" in
+  LENOVO)
+    case "$ident" in
+      *Legion*)
+        modprobe legion_laptop || {
+          echo "legion_laptop failed to load on a Legion (Secure Boot key not enrolled on this machine?)" >&2
+          exit 1
+        }
+        ;;
+    esac
+    ;;
+esac
+
+echo "hardware profile: ${vendor:-unknown} / ${ident}"

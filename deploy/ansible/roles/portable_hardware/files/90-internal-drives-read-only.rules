@@ -1,0 +1,2 @@
+ACTION=="add|change", SUBSYSTEM=="block", ENV{DEVTYPE}=="disk|partition", KERNEL=="nvme[0-9]*", RUN+="/usr/sbin/blockdev --setro $devnode"
+ACTION=="add|change", SUBSYSTEM=="block", ENV{DEVTYPE}=="disk|partition", KERNEL=="sd[a-z]*", ENV{ID_BUS}=="ata", RUN+="/usr/sbin/blockdev --setro $devnode"

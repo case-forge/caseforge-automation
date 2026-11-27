@@ -1,0 +1,83 @@
+---
+
+- name: Refuse an unknown postgres_mode
+  ansible.builtin.assert:
+    that: postgres_mode in ['container', 'native']
+    fail_msg: "postgres_mode must be 'container' or 'native', got '{{ postgres_mode }}'"
+
+- name: Confirm the LUKS-encrypted volume is actually mounted before doing anything else
+  ansible.builtin.command: mountpoint -q {{ luks_data_volume_mount_path }}
+  register: postgres_luks_mount_check
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Refuse to provision Postgres if the encrypted volume isn't mounted
+  ansible.builtin.assert:
+    that: postgres_luks_mount_check.rc == 0
+    fail_msg: >-
+      {{ luks_data_volume_mount_path }} is not a mount point. Run
+      roles/luks_data_volume first -- this role will not silently put
+      caseforge-clientdb's data on unencrypted storage instead.
+
+- name: Compute the actual data path under the encrypted mount
+  ansible.builtin.set_fact:
+    postgres_host_data_path: >-
+      {{ luks_data_volume_mount_path }}/{{ postgres_native_data_subdir if postgres_mode == 'native' else postgres_data_subdir }}
+
+- name: Read CASEFORGE_CLIENTDB_PG_URL from the generated env file
+  ansible.builtin.shell:
+    cmd: >
+      set -a; . {{ repo_checkout_dir }}/.secrets/caseforge-env 2>/dev/null; set +a;
+      printf '%s' "${CASEFORGE_CLIENTDB_PG_URL:-}"
+    executable: /bin/bash
+  register: postgres_dsn_lookup
+  when: (postgres_db_password | length == 0) and (repo_checkout_enabled | bool)
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  become: false
+  no_log: true
+
+- name: Extract the password from the DSN (postgresql://user:PASSWORD@host:port/db)
+  ansible.builtin.set_fact:
+    postgres_db_password: >-
+      {{ postgres_dsn_lookup.stdout
+         | regex_search('://[^:]+:([^@]+)@', '\1')
+         | first | default('') }}
+  when:
+    - postgres_dsn_lookup is defined
+    - postgres_dsn_lookup.stdout is defined
+    - postgres_dsn_lookup.stdout | length > 0
+  no_log: true
+
+- name: Refuse to start Postgres with no password resolved from anywhere
+  ansible.builtin.assert:
+    that: postgres_db_password | length > 0
+    fail_msg: >-
+      No postgres_db_password set, and CASEFORGE_CLIENTDB_PG_URL was empty or
+      unreadable (repo_checkout_enabled={{ repo_checkout_enabled }}). Either
+      run secrets_bootstrap first so the DSN is available, or pass
+      postgres_db_password explicitly.
+
+- name: Discover this box's tailnet IPv4 (if enrolled)
+  ansible.builtin.command: tailscale ip -4
+  register: postgres_tailscale_ip
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Record the tailnet bind address, if there is one
+  ansible.builtin.set_fact:
+    postgres_tailnet_ip: >-
+      {{ (postgres_tailscale_ip.stdout | trim | split('\n') | first)
+         if (postgres_tailscale_ip.rc == 0 and postgres_tailscale_ip.stdout | trim | length > 0)
+         else '' }}
+
+- name: Run the container variant
+  ansible.builtin.include_tasks: container.yml
+  when: postgres_mode == 'container'
+
+- name: Run the native variant
+  ansible.builtin.include_tasks: native.yml
+  when: postgres_mode == 'native'

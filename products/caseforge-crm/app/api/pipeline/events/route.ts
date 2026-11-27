@@ -1,0 +1,21 @@
+
+import { NextRequest } from "next/server";
+import { resolveIdentityForRoute } from "@/lib/accessIdentity";
+import { hubGetJson, isStubMode } from "@/lib/hubProxy";
+import { stubPipeline } from "@/lib/stubPipeline";
+
+const STUB_SEEN_BY = [
+  { who: "person-a@example.test", at: "2026-11-17T16:40:00Z" },
+  { who: "person-b@example.test", at: "2026-11-16T09:12:00Z" },
+];
+
+export const dynamic = "force-dynamic";
+
+export async function GET(request: NextRequest): Promise<Response> {
+  const { rejection, remoteUser } = await resolveIdentityForRoute(request.headers);
+  if (rejection) return rejection;
+  const matterId = (request.nextUrl.searchParams.get("matter_id") ?? "").trim();
+  if (!matterId) return Response.json({ error: "matter_id is required" }, { status: 400 });
+  if (isStubMode()) return Response.json({ matter_id: matterId, events: stubPipeline(matterId).events, seen_by: STUB_SEEN_BY });
+  return hubGetJson(request, "/client-viewer/pipeline/events", { matter_id: matterId }, remoteUser);
+}

@@ -1,0 +1,83 @@
+---
+- name: Check for existing Node
+  ansible.builtin.command: node --version
+  register: node_existing
+  changed_when: false
+  check_mode: false
+  failed_when: false
+
+- name: Install Node LTS via nodesource (apt's own Node package lags significantly)
+  when: node_existing.rc != 0
+  block:
+    - name: Add nodesource setup script
+      ansible.builtin.shell:
+        cmd: "curl -fsSL https://deb.nodesource.com/setup_lts.x | bash -"
+    - name: Install nodejs package
+      ansible.builtin.apt:
+        name: nodejs
+        state: present
+
+- name: "[caseforge] Claude Code skipped (dev_tooling_enabled is false)"
+  ansible.builtin.debug:
+    msg: "[caseforge] Claude Code / ai-cli-tools skipped -- dev_tooling_enabled is false for this host"
+  when: not (dev_tooling_enabled | bool)
+
+- name: Claude Code (ai-cli-tools -- dev tooling only)
+  when: dev_tooling_enabled | bool
+  block:
+    - name: Set npm allow-scripts config (postinstall step needs this on npm >=11 for npm-managed CLIs)
+      ansible.builtin.command:
+        cmd: 'npm config set allow-scripts="@anthropic-ai/claude-code" --location=global'
+      changed_when: true
+      failed_when: false
+
+    - name: Check for existing Claude Code CLI
+      become: false
+      ansible.builtin.command: claude --version
+      register: claude_existing
+      changed_when: false
+      check_mode: false
+      failed_when: false
+
+    - name: Install Claude Code (official native installer, not npm)
+      become: false
+      ansible.builtin.shell:
+        cmd: "curl -fsSL https://claude.ai/install.sh | bash"
+      when: claude_existing.rc != 0
+      async: 180
+      poll: 5
+
+- name: Check for existing goose CLI
+  become: false
+  ansible.builtin.command: goose --version
+  register: goose_existing
+  changed_when: false
+  check_mode: false
+  failed_when: false
+
+- name: Install goose (bootstrap.sh's own official-installer command, recovered from git history)
+  become: false
+  ansible.builtin.shell:
+    cmd: "curl -fsSL https://github.com/aaif-goose/goose/releases/latest/download/download_cli.sh | CONFIGURE=false bash"
+  when: goose_existing.rc != 0
+  async: 180
+  poll: 5
+
+- name: Symlink goose into /usr/local/bin so it's on PATH for non-interactive contexts too
+  ansible.builtin.file:
+    src: "{{ checkout_owner_home }}/.local/bin/goose"
+    dest: /usr/local/bin/goose
+    state: link
+    force: true
+
+- name: CaseForge CLI runtime wrappers present in ~/.bashrc
+  ansible.builtin.blockinfile:
+    path: "{{ checkout_owner_home }}/.bashrc"
+    marker: "# CaseForge model CLI runtime labels {mark}"
+    block: |
+      _caseforge_cli_env_root="${CLAUDE_PROJECT_DIR:-$HOME/caseforge-automation}"
+      [ -f "$_caseforge_cli_env_root/tools/caseforge-cli-env.sh" ] && source "$_caseforge_cli_env_root/tools/caseforge-cli-env.sh"
+      unset _caseforge_cli_env_root
+    create: true
+    owner: "{{ ansible_user }}"
+  become: false

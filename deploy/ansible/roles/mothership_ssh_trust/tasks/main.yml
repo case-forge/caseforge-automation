@@ -1,0 +1,18 @@
+---
+- name: Fetch mothership public keys from GitHub
+  ansible.builtin.uri:
+    url: "{{ mothership_keys_url }}"
+    return_content: true
+  register: mothership_keys_fetch
+  failed_when: false
+
+- name: Add each mothership key to authorized_keys (idempotent -- authorized_key matches on key material)
+  ansible.posix.authorized_key:
+    user: "{{ ansible_user_id }}"
+    key: "{{ item }}"
+    state: present
+  loop: "{{ mothership_keys_fetch.content.splitlines() }}"
+  when:
+    - mothership_keys_fetch.status is defined
+    - mothership_keys_fetch.status == 200
+    - item | trim != ""

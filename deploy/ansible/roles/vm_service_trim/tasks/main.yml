@@ -1,0 +1,14 @@
+---
+
+- name: Stop and mask unneeded services on a virtual server
+  when: vm_service_trim_enabled | bool and 'physical_or_personal' not in group_names
+  block:
+    - name: Mask each unit (a unit that is not installed is skipped)
+      ansible.builtin.systemd_service:
+        name: "{{ item }}"
+        state: stopped
+        enabled: false
+        masked: true
+      loop: "{{ vm_service_trim_common + vm_service_trim_checked_hardware }}"
+      register: vm_service_trim_result
+      failed_when: vm_service_trim_result.failed | default(false) and 'Could not find' not in (vm_service_trim_result.msg | default(''))

@@ -1,0 +1,585 @@
+{
+ "source": "hmcts/prl-ccd-definitions (MIT), definitions/private-law/json/CaseEventToFields/AllegationsOfHarmRevised/CaseEventToFields.json",
+ "commit": "c5f76cf811fc47425edd358a00fab37c7727818b",
+ "note": "Field identifiers, page order and show conditions are HMCTS's. The field types are inferred from the identifier and are not confirmed. The attendingTheHearing1 page carries only the special arrangements pair (source: .../CaseEventToFields/AttendingTheHearing/CaseEventToFields.json, same commit); the portal's other questions on that page are left out.",
+ "event": "allegationsOfHarmRevised",
+ "pages": {
+  "allegationsOfHarmRevised1": [
+   {
+    "id": "newAllegationsOfHarmYesNo",
+    "type": "yesno",
+    "when": []
+   }
+  ],
+  "allegationsOfHarmRevised2": [
+   {
+    "id": "newAllegationsOfHarmDomesticAbuseYesNo",
+    "type": "yesno",
+    "when": []
+   },
+   {
+    "id": "newAllegationsOfHarmChildAbuseYesNo",
+    "type": "yesno",
+    "when": []
+   },
+   {
+    "id": "newAllegationsOfHarmChildAbductionYesNo",
+    "type": "yesno",
+    "when": []
+   },
+   {
+    "id": "newAllegationsOfHarmSubstanceAbuseYesNo",
+    "type": "yesno",
+    "when": []
+   },
+   {
+    "id": "newAllegationsOfHarmSubstanceAbuseDetails",
+    "type": "textarea",
+    "when": [
+     [
+      "newAllegationsOfHarmSubstanceAbuseYesNo",
+      "Yes"
+     ]
+    ]
+   },
+   {
+    "id": "newAllegationsOfHarmOtherConcerns",
+    "type": "yesno",
+    "when": []
+   },
+   {
+    "id": "newAllegationsOfHarmOtherConcernsDetails",
+    "type": "textarea",
+    "when": [
+     [
+      "newAllegationsOfHarmOtherConcerns",
+      "Yes"
+     ]
+    ]
+   },
+   {
+    "id": "newOrdersNonMolestation",
+    "type": "yesno",
+    "when": []
+   },
+   {
+    "id": "newOrdersNonMolestationDateIssued",
+    "type": "date",
+    "when": [
+     [
+      "newOrdersNonMolestation",
+      "Yes"
+     ]
+    ]
+   },
+   {
+    "id": "newOrdersNonMolestationEndDate",
+    "type": "date",
+    "when": [
+     [
+      "newOrdersNonMolestation",
+      "Yes"
+     ]
+    ]
+   },
+   {
+    "id": "newOrdersNonMolestationCurrent",
+    "type": "yesno",
+    "when": [
+     [
+      "newOrdersNonMolestation",
+      "Yes"
+     ]
+    ]
+   },
+   {
+    "id": "newOrdersNonMolestationCourtName",
+    "type": "text",
+    "when": [
+     [
+      "newOrdersNonMolestation",
+      "Yes"
+     ]
+    ]
+   },
+   {
+    "id": "newOrdersNonMolestationCaseNumber",
+    "type": "text",
+    "when": [
+     [
+      "newOrdersNonMolestation",
+      "Yes"
+     ]
+    ]
+   },
+   {
+    "id": "newOrdersNonMolestationDocument",
+    "type": "document",
+    "when": [
+     [
+      "newOrdersNonMolestation",
+      "Yes"
+     ]
+    ]
+   },
+   {
+    "id": "newOrdersOccupation",
+    "type": "yesno",
+    "when": []
+   },
+   {
+    "id": "newOrdersOccupationDateIssued",
+    "type": "date",
+    "when": [
+     [
+      "newOrdersOccupation",
+      "Yes"
+     ]
+    ]
+   },
+   {
+    "id": "newOrdersOccupationEndDate",
+    "type": "date",
+    "when": [
+     [
+      "newOrdersOccupation",
+      "Yes"
+     ]
+    ]
+   },
+   {
+    "id": "newOrdersOccupationCurrent",
+    "type": "yesno",
+    "when": [
+     [
+      "newOrdersOccupation",
+      "Yes"
+     ]
+    ]
+   },
+   {
+    "id": "newOrdersOccupationCourtName",
+    "type": "text",
+    "when": [
+     [
+      "newOrdersOccupation",
+      "Yes"
+     ]
+    ]
+   },
+   {
+    "id": "newOrdersOccupationCaseNumber",
+    "type": "text",
+    "when": [
+     [
+      "newOrdersOccupation",
+      "Yes"
+     ]
+    ]
+   },
+   {
+    "id": "newOrdersOccupationDocument",
+    "type": "document",
+    "when": [
+     [
+      "newOrdersOccupation",
+      "Yes"
+     ]
+    ]
+   },
+   {
+    "id": "newOrdersForcedMarriageProtection",
+    "type": "yesno",
+    "when": [
+     [
+      "newAllegationsOfHarmYesNo",
+      "Yes"
+     ]
+    ]
+   },
+   {
+    "id": "newOrdersForcedMarriageProtectionDateIssued",
+    "type": "date",
+    "when": [
+     [
+      "newAllegationsOfHarmYesNo",
+      "Yes"
+     ],
+     [
+      "newOrdersForcedMarriageProtection",
+      "Yes"
+     ]
+    ]
+   },
+   {
+    "id": "newOrdersForcedMarriageProtectionEndDate",
+    "type": "date",
+    "when": [
+     [
+      "newAllegationsOfHarmYesNo",
+      "Yes"
+     ],
+     [
+      "newOrdersForcedMarriageProtection",
+      "Yes"
+     ]
+    ]
+   },
+   {
+    "id": "newOrdersForcedMarriageProtectionCurrent",
+    "type": "yesno",
+    "when": [
+     [
+      "newAllegationsOfHarmYesNo",
+      "Yes"
+     ],
+     [
+      "newOrdersForcedMarriageProtection",
+      "Yes"
+     ]
+    ]
+   },
+   {
+    "id": "newOrdersForcedMarriageProtectionCourtName",
+    "type": "text",
+    "when": [
+     [
+      "newAllegationsOfHarmYesNo",
+      "Yes"
+     ],
+     [
+      "newOrdersForcedMarriageProtection",
+      "Yes"
+     ]
+    ]
+   },
+   {
+    "id": "newOrdersForcedMarriageProtectionCaseNumber",
+    "type": "text",
+    "when": [
+     [
+      "newAllegationsOfHarmYesNo",
+      "Yes"
+     ],
+     [
+      "newOrdersForcedMarriageProtection",
+      "Yes"
+     ]
+    ]
+   },
+   {
+    "id": "newOrdersForcedMarriageProtectionDocument",
+    "type": "document",
+    "when": [
+     [
+      "newAllegationsOfHarmYesNo",
+      "Yes"
+     ],
+     [
+      "newOrdersForcedMarriageProtection",
+      "Yes"
+     ]
+    ]
+   },
+   {
+    "id": "newOrdersRestraining",
+    "type": "yesno",
+    "when": [
+     [
+      "newAllegationsOfHarmYesNo",
+      "Yes"
+     ]
+    ]
+   },
+   {
+    "id": "newOrdersRestrainingDateIssued",
+    "type": "date",
+    "when": [
+     [
+      "newAllegationsOfHarmYesNo",
+      "Yes"
+     ],
+     [
+      "newOrdersRestraining",
+      "Yes"
+     ]
+    ]
+   },
+   {
+    "id": "newOrdersRestrainingEndDate",
+    "type": "date",
+    "when": [
+     [
+      "newAllegationsOfHarmYesNo",
+      "Yes"
+     ],
+     [
+      "newOrdersRestraining",
+      "Yes"
+     ]
+    ]
+   },
+   {
+    "id": "newOrdersRestrainingCurrent",
+    "type": "yesno",
+    "when": [
+     [
+      "newAllegationsOfHarmYesNo",
+      "Yes"
+     ],
+     [
+      "newOrdersRestraining",
+      "Yes"
+     ]
+    ]
+   },
+   {
+    "id": "newOrdersRestrainingCourtName",
+    "type": "text",
+    "when": [
+     [
+      "newAllegationsOfHarmYesNo",
+      "Yes"
+     ],
+     [
+      "newOrdersRestraining",
+      "Yes"
+     ]
+    ]
+   },
+   {
+    "id": "newOrdersRestrainingCaseNumber",
+    "type": "text",
+    "when": [
+     [
+      "newAllegationsOfHarmYesNo",
+      "Yes"
+     ],
+     [
+      "newOrdersRestraining",
+      "Yes"
+     ]
+    ]
+   },
+   {
+    "id": "newOrdersRestrainingDocument",
+    "type": "document",
+    "when": [
+     [
+      "newAllegationsOfHarmYesNo",
+      "Yes"
+     ],
+     [
+      "newOrdersRestraining",
+      "Yes"
+     ]
+    ]
+   },
+   {
+    "id": "newOrdersOtherInjunctive",
+    "type": "yesno",
+    "when": [
+     [
+      "newAllegationsOfHarmYesNo",
+      "Yes"
+     ]
+    ]
+   },
+   {
+    "id": "newOrdersOtherInjunctiveDateIssued",
+    "type": "date",
+    "when": [
+     [
+      "newAllegationsOfHarmYesNo",
+      "Yes"
+     ],
+     [
+      "newOrdersOtherInjunctive",
+      "Yes"
+     ]
+    ]
+   },
+   {
+    "id": "newOrdersOtherInjunctiveEndDate",
+    "type": "date",
+    "when": [
+     [
+      "newAllegationsOfHarmYesNo",
+      "Yes"
+     ],
+     [
+      "newOrdersOtherInjunctive",
+      "Yes"
+     ]
+    ]
+   },
+   {
+    "id": "newOrdersOtherInjunctiveCurrent",
+    "type": "yesno",
+    "when": [
+     [
+      "newAllegationsOfHarmYesNo",
+      "Yes"
+     ],
+     [
+      "newOrdersOtherInjunctive",
+      "Yes"
+     ]
+    ]
+   },
+   {
+    "id": "newOrdersOtherInjunctiveCourtName",
+    "type": "text",
+    "when": [
+     [
+      "newAllegationsOfHarmYesNo",
+      "Yes"
+     ],
+     [
+      "newOrdersOtherInjunctive",
+      "Yes"
+     ]
+    ]
+   },
+   {
+    "id": "newOrdersOtherInjunctiveCaseNumber",
+    "type": "text",
+    "when": [
+     [
+      "newAllegationsOfHarmYesNo",
+      "Yes"
+     ],
+     [
+      "newOrdersOtherInjunctive",
+      "Yes"
+     ]
+    ]
+   },
+   {
+    "id": "newOrdersOtherInjunctiveDocument",
+    "type": "document",
+    "when": [
+     [
+      "newAllegationsOfHarmYesNo",
+      "Yes"
+     ],
+     [
+      "newOrdersOtherInjunctive",
+      "Yes"
+     ]
+    ]
+   },
+   {
+    "id": "newOrdersUndertakingInPlace",
+    "type": "yesno",
+    "when": [
+     [
+      "newAllegationsOfHarmYesNo",
+      "Yes"
+     ]
+    ]
+   },
+   {
+    "id": "newOrdersUndertakingInPlaceDateIssued",
+    "type": "date",
+    "when": [
+     [
+      "newAllegationsOfHarmYesNo",
+      "Yes"
+     ],
+     [
+      "newOrdersUndertakingInPlace",
+      "Yes"
+     ]
+    ]
+   },
+   {
+    "id": "newOrdersUndertakingInPlaceEndDate",
+    "type": "date",
+    "when": [
+     [
+      "newAllegationsOfHarmYesNo",
+      "Yes"
+     ],
+     [
+      "newOrdersUndertakingInPlace",
+      "Yes"
+     ]
+    ]
+   },
+   {
+    "id": "newOrdersUndertakingInPlaceCurrent",
+    "type": "yesno",
+    "when": [
+     [
+      "newAllegationsOfHarmYesNo",
+      "Yes"
+     ],
+     [
+      "newOrdersUndertakingInPlace",
+      "Yes"
+     ]
+    ]
+   },
+   {
+    "id": "newOrdersUndertakingInPlaceCourtName",
+    "type": "text",
+    "when": [
+     [
+      "newAllegationsOfHarmYesNo",
+      "Yes"
+     ],
+     [
+      "newOrdersUndertakingInPlace",
+      "Yes"
+     ]
+    ]
+   },
+   {
+    "id": "newOrdersUndertakingInPlaceCaseNumber",
+    "type": "text",
+    "when": [
+     [
+      "newAllegationsOfHarmYesNo",
+      "Yes"
+     ],
+     [
+      "newOrdersUndertakingInPlace",
+      "Yes"
+     ]
+    ]
+   },
+   {
+    "id": "newOrdersUndertakingInPlaceDocument",
+    "type": "document",
+    "when": [
+     [
+      "newAllegationsOfHarmYesNo",
+      "Yes"
+     ],
+     [
+      "newOrdersUndertakingInPlace",
+      "Yes"
+     ]
+    ]
+   }
+  ],
+  "attendingTheHearing1": [
+   {
+    "id": "isSpecialArrangementsRequired",
+    "type": "yesno",
+    "when": []
+   },
+   {
+    "id": "specialArrangementsRequired",
+    "type": "textarea",
+    "when": [
+     [
+      "isSpecialArrangementsRequired",
+      "Yes"
+     ]
+    ]
+   }
+  ]
+ }
+}

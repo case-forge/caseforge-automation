@@ -1,0 +1,51 @@
+---
+
+- name: Check for existing Azure Functions Core Tools
+  ansible.builtin.command: func --version
+  register: azure_functions_existing
+  changed_when: false
+  check_mode: false
+  failed_when: false
+
+- name: Install Azure Functions Core Tools
+  when: azure_functions_existing.rc != 0
+  block:
+    - name: Ensure apt keyring directory exists
+      ansible.builtin.file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: "0755"
+
+    - name: Fetch Microsoft's package signing key
+      ansible.builtin.get_url:
+        url: https://packages.microsoft.com/keys/microsoft.asc
+        dest: /tmp/microsoft.asc
+        mode: "0644"
+
+    - name: Dearmor the key into the apt keyring
+      ansible.builtin.shell:
+        cmd: gpg --dearmor < /tmp/microsoft.asc > /etc/apt/keyrings/microsoft.gpg
+        creates: /etc/apt/keyrings/microsoft.gpg
+
+    - name: Add the packages.microsoft.com prod repo for this Ubuntu codename
+      ansible.builtin.apt_repository:
+        repo: >-
+          deb [arch=amd64 signed-by=/etc/apt/keyrings/microsoft.gpg]
+          https://packages.microsoft.com/repos/microsoft-ubuntu-{{ ansible_distribution_release }}-prod
+          {{ ansible_distribution_release }} main
+        filename: microsoft-prod
+        state: present
+        update_cache: true
+
+    - name: Install azure-functions-core-tools-4 (non-fatal -- feed may not carry it for this release)
+      ansible.builtin.apt:
+        name: azure-functions-core-tools-4
+        state: present
+        install_recommends: false
+      register: azure_functions_install
+      failed_when: false
+
+    - name: "[caseforge] Azure Functions Core Tools install failed -- continuing; Function App deploys unavailable until installed manually"
+      ansible.builtin.debug:
+        msg: "[caseforge][WARN] azure-functions-core-tools-4 install failed (feed may not carry it for this release) -- continuing"
+      when: azure_functions_install is failed

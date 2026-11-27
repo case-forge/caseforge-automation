@@ -1,0 +1,96 @@
+---
+- name: "[caseforge] Repo checkout deliberately disabled for this box"
+  ansible.builtin.debug:
+    msg: >-
+      [caseforge] Skipping caseforge-automation checkout: repo_checkout_enabled is
+      false for this host -- see roles/repo_checkout/defaults/main.yml for why.
+  when: not (repo_checkout_enabled | bool)
+
+- name: Check if repo already checked out
+  ansible.builtin.stat:
+    path: "{{ repo_checkout_dir }}/.git"
+  register: repo_checkout_existing
+  when: repo_checkout_enabled | bool
+
+- name: Clone caseforge-automation
+  ansible.builtin.git:
+    repo: "{{ repo_checkout_ssh_url }}"
+    dest: "{{ repo_checkout_dir }}"
+    accept_hostkey: true
+  when: (repo_checkout_enabled | bool) and not repo_checkout_existing.stat.exists
+
+- name: Keep unreachable commits for 90 days (lost-work recovery window)
+  become: false
+  community.general.git_config:
+    name: "{{ item }}"
+    scope: local
+    repo: "{{ repo_checkout_dir }}"
+    value: "{{ repo_checkout_prune_window }}"
+  loop:
+    - gc.pruneExpire
+    - gc.reflogExpireUnreachable
+  when: repo_checkout_enabled | bool
+
+- name: Install pre-push hook symlink (blocks a push when the test suite is red)
+  ansible.builtin.file:
+    src: "../../.githooks/pre-push"
+    dest: "{{ repo_checkout_dir }}/.git/hooks/pre-push"
+    state: link
+    force: true
+  when: repo_checkout_enabled | bool
+
+- name: Install commit-msg hook symlink (strips a Co-Authored-By trailer, gh#274)
+  ansible.builtin.file:
+    src: "../../.githooks/commit-msg"
+    dest: "{{ repo_checkout_dir }}/.git/hooks/commit-msg"
+    state: link
+    force: true
+  when: repo_checkout_enabled | bool
+
+- name: Install Python requirements (needed by secrets_bootstrap and almost everything else)
+  ansible.builtin.pip:
+    requirements: "{{ repo_checkout_dir }}/requirements.txt"
+    executable: pip3
+  become: false
+  when: repo_checkout_enabled | bool
+
+- name: Check for the spaCy en_core_web_sm model
+  ansible.builtin.command:
+    cmd: python3 -c "import en_core_web_sm"
+  become: false
+  register: spacy_model_present
+  changed_when: false
+  check_mode: false
+  failed_when: false
+  when: repo_checkout_enabled | bool
+
+- name: spaCy en_core_web_sm model (a downloaded asset, not a pip requirement)
+  ansible.builtin.command:
+    cmd: python3 -m spacy download en_core_web_sm
+  become: false
+  when: (repo_checkout_enabled | bool) and spacy_model_present.rc | default(0) != 0
+
+- name: Repair root-owned runtime state in a non-root checkout
+  ansible.builtin.file:
+    path: "{{ repo_checkout_dir }}/{{ item }}"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    state: directory
+    recurse: true
+  loop:
+    - telemetry
+    - ops
+  failed_when: false
+  when: (repo_checkout_enabled | bool) and ansible_user != 'root'
+
+- name: Pin the git author identity for this box
+  become: false
+  community.general.git_config:
+    name: "{{ item.name }}"
+    scope: global
+    value: "{{ item.value }}"
+  loop:
+    - { name: "user.name",  value: "{{ git_identity_name }}" }
+    - { name: "user.email", value: "{{ git_identity_email }}" }
+  loop_control:
+    label: "{{ item.name }}"

@@ -1,0 +1,196 @@
+---
+- name: "[caseforge] systemd_services deliberately disabled for this box"
+  ansible.builtin.debug:
+    msg: >-
+      [caseforge] Skipping caseforge-automation's own application services:
+      systemd_services_enabled is false for this host -- see
+      roles/systemd_services/defaults/main.yml for why.
+  when: not (systemd_services_enabled | bool)
+
+- block:
+    - name: Template systemd unit files (write-once -- do not overwrite hand-edited drop-ins)
+      ansible.builtin.template:
+        src: "{{ item }}.service.j2"
+        dest: "/etc/systemd/system/{{ item }}.service"
+        mode: "0644"
+        force: false
+      loop: "{{ systemd_services_templated_units }}"
+      register: systemd_services_units_written
+
+    - name: Reload systemd if any unit changed
+      ansible.builtin.systemd_service:
+        daemon_reload: true
+      when: systemd_services_units_written.changed
+
+    - name: Enable the templated application units
+      ansible.builtin.systemd_service:
+        name: "{{ item }}.service"
+        enabled: true
+      loop: "{{ systemd_services_templated_units }}"
+
+    - name: Install the prebuilt units
+      ansible.builtin.copy:
+        src: "{{ repo_checkout_dir }}/deploy/systemd/{{ item }}"
+        dest: "/etc/systemd/system/{{ item }}"
+        remote_src: true
+        mode: "0644"
+      loop: "{{ systemd_services_units }}"
+      register: systemd_services_prebuilt_written
+
+    - name: Reload systemd if any prebuilt unit changed
+      ansible.builtin.systemd_service:
+        daemon_reload: true
+      when: systemd_services_prebuilt_written.changed
+
+    - name: Create the drop-in directories
+      ansible.builtin.file:
+        path: "/etc/systemd/system/{{ item }}.d"
+        state: directory
+        mode: "0755"
+      loop: "{{ systemd_services_dropins | map(attribute='unit') | unique | list }}"
+
+    - name: Write the unit drop-ins
+      ansible.builtin.template:
+        src: dropin.conf.j2
+        dest: "/etc/systemd/system/{{ item.unit }}.d/{{ item.name }}"
+        mode: "0644"
+      loop: "{{ systemd_services_dropins }}"
+      loop_control:
+        label: "{{ item.unit }}.d/{{ item.name }}"
+      register: systemd_services_dropins_written
+
+    - name: Reload systemd if any drop-in changed
+      ansible.builtin.systemd_service:
+        daemon_reload: true
+      when: systemd_services_dropins_written.changed
+
+    - name: Enable and start the prebuilt units' timers
+      ansible.builtin.systemd_service:
+        name: "{{ item }}"
+        enabled: true
+        state: started
+      loop: "{{ systemd_services_timers }}"
+
+    - name: Enable and start the prebuilt long-running services
+      ansible.builtin.systemd_service:
+        name: "{{ item }}"
+        enabled: true
+        state: started
+      loop: "{{ systemd_services_persistent }}"
+
+    - name: Stop and disable retired units
+      ansible.builtin.systemd_service:
+        name: "{{ item }}"
+        enabled: false
+        state: stopped
+      loop: "{{ systemd_services_retired }}"
+      failed_when: false
+
+    - name: Remove retired unit files
+      ansible.builtin.file:
+        path: "/etc/systemd/system/{{ item }}"
+        state: absent
+      loop: "{{ systemd_services_retired }}"
+      register: systemd_services_retired_removed
+
+    - name: Reload systemd if a retired unit file was removed
+      ansible.builtin.systemd_service:
+        daemon_reload: true
+      when: systemd_services_retired_removed.changed
+
+    - name: Install mosh-session-reaper's script
+      ansible.builtin.copy:
+        src: "{{ session_reapers_checkout_dir }}/scripts/mosh-session-reaper.sh"
+        dest: /usr/local/sbin/mosh-session-reaper.sh
+        remote_src: true
+        mode: "0755"
+        owner: root
+        group: root
+      register: systemd_services_mosh_reaper_script
+      when: mosh_reaper_enabled | bool
+
+    - name: Configure mosh-session-reaper's protocol contest
+      ansible.builtin.copy:
+        content: |
+          MOSH_REAPER_PROTOS={{ mosh_reaper_protos }}
+          MOSH_REAPER_MIN_AGE_TO_WIN={{ mosh_reaper_min_age_to_win }}
+        dest: /etc/default/mosh-session-reaper
+        mode: "0644"
+      register: systemd_services_mosh_reaper_defaults
+      when: mosh_reaper_enabled | bool
+
+    - name: Install mosh-session-reaper (boxes where it's actually safe)
+      ansible.builtin.copy:
+        src: "{{ session_reapers_checkout_dir }}/systemd/{{ item }}"
+        dest: "/etc/systemd/system/{{ item }}"
+        remote_src: true
+        mode: "0644"
+      loop:
+        - mosh-session-reaper.service
+        - mosh-session-reaper.timer
+      register: systemd_services_mosh_reaper_written
+      when: mosh_reaper_enabled | bool
+
+    - name: Reload systemd if mosh-session-reaper changed
+      ansible.builtin.systemd_service:
+        daemon_reload: true
+      when: mosh_reaper_enabled | bool and systemd_services_mosh_reaper_written.changed
+
+    - name: Enable and start mosh-session-reaper's timer
+      ansible.builtin.systemd_service:
+        name: mosh-session-reaper.timer
+        enabled: true
+        state: started
+      when: mosh_reaper_enabled | bool
+
+    - name: Ensure mosh-session-reaper is stopped and disabled where it's unsafe
+      ansible.builtin.systemd_service:
+        name: mosh-session-reaper.timer
+        enabled: false
+        state: stopped
+      failed_when: false
+      when: not (mosh_reaper_enabled | bool)
+
+    - name: Install zellij-session-reaper's script
+      ansible.builtin.copy:
+        src: "{{ session_reapers_checkout_dir }}/scripts/zellij-session-reaper.sh"
+        dest: /usr/local/sbin/zellij-session-reaper.sh
+        remote_src: true
+        mode: "0755"
+        owner: root
+        group: root
+      register: systemd_services_zellij_reaper_script
+      when: zellij_reaper_enabled | bool
+
+    - name: Install zellij-session-reaper (boxes where it's actually wanted)
+      ansible.builtin.copy:
+        src: "{{ session_reapers_checkout_dir }}/systemd/{{ item }}"
+        dest: "/etc/systemd/system/{{ item }}"
+        remote_src: true
+        mode: "0644"
+      loop:
+        - zellij-session-reaper.service
+        - zellij-session-reaper.timer
+      register: systemd_services_zellij_reaper_written
+      when: zellij_reaper_enabled | bool
+
+    - name: Reload systemd if zellij-session-reaper changed
+      ansible.builtin.systemd_service:
+        daemon_reload: true
+      when: zellij_reaper_enabled | bool and systemd_services_zellij_reaper_written.changed
+
+    - name: Enable and start zellij-session-reaper's timer
+      ansible.builtin.systemd_service:
+        name: zellij-session-reaper.timer
+        enabled: true
+        state: started
+      when: zellij_reaper_enabled | bool
+
+    - name: Ensure zellij-session-reaper is stopped and disabled where it's not enabled
+      ansible.builtin.systemd_service:
+        name: zellij-session-reaper.timer
+        enabled: false
+        state: stopped
+      failed_when: false
+      when: not (zellij_reaper_enabled | bool)
+  when: systemd_services_enabled | bool

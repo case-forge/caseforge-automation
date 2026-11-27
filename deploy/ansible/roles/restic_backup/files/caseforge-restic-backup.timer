@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily restic backup to pCloud
+
+[Timer]
+OnCalendar=*-*-* 00:00:00
+AccuracySec=1min
+Persistent=true
+Unit=caseforge-restic-backup.service
+
+[Install]
+WantedBy=timers.target

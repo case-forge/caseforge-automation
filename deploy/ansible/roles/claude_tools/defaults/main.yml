@@ -1,0 +1,6 @@
+---
+claude_tools_checkout_dir: "{{ checkout_owner_home }}/.claude/skills/claude-tools"
+
+claude_tools_url: "https://github.com/case-forge/claude-tools.git"
+
+claude_tools_checkout_enabled: false

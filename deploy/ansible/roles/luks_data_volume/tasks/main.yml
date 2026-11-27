@@ -1,0 +1,534 @@
+---
+
+- name: Refuse to run without an explicit target device
+  ansible.builtin.assert:
+    that: luks_data_volume_device | length > 0
+    fail_msg: >-
+      luks_data_volume_device is not set. This role will not guess a disk to
+      encrypt -- pass it explicitly (e.g. -e luks_data_volume_device=/dev/sdb).
+
+- name: Install cryptsetup
+  ansible.builtin.apt:
+    name: cryptsetup
+    state: present
+
+- name: Confirm the target device actually exists on this box
+  ansible.builtin.stat:
+    path: "{{ luks_data_volume_device }}"
+    get_checksum: false
+    get_mime: false
+  register: luks_data_volume_device_stat
+  check_mode: false
+
+- name: Auto-create a missing file-backed target
+  when:
+    - not luks_data_volume_device_stat.stat.exists
+    - not (luks_data_volume_device is match('^/dev/'))
+  block:
+    - name: Compute free space on the filesystem that will hold the backing file
+      ansible.builtin.command: df --output=avail -B1 "{{ luks_data_volume_device | dirname }}"
+      register: luks_data_volume_df
+      changed_when: false
+      check_mode: false
+
+    - name: Decide the file size (explicit override, or min(fraction of free, cap))
+      ansible.builtin.set_fact:
+        luks_data_volume_computed_size_mb: >-
+          {{ luks_data_volume_file_size_mb if (luks_data_volume_file_size_mb | length > 0) else
+             ([ ((luks_data_volume_df.stdout_lines[1] | trim | int) * luks_data_volume_file_size_fraction / 1048576) | round(0, 'floor') | int,
+                luks_data_volume_file_size_cap_mb | int ] | min) }}
+
+    - name: Refuse if there isn't even room for a sensible minimum
+      ansible.builtin.assert:
+        that: luks_data_volume_computed_size_mb | int >= 1024
+        fail_msg: >-
+          Computed file size is only {{ luks_data_volume_computed_size_mb }}MB --
+          not enough room on {{ luks_data_volume_device | dirname }} for a sensible
+          encrypted volume. Free up space or pass luks_data_volume_file_size_mb
+          explicitly if a smaller volume is genuinely intended.
+
+    - name: Create the sparse backing file at the computed size
+      ansible.builtin.command: truncate -s {{ luks_data_volume_computed_size_mb }}M {{ luks_data_volume_device }}
+
+    - name: "[caseforge] file-backed volume created"
+      ansible.builtin.debug:
+        msg: >-
+          [caseforge] created {{ luks_data_volume_device }} at
+          {{ luks_data_volume_computed_size_mb }}MB ({{ 'explicit override' if
+          (luks_data_volume_file_size_mb | length > 0) else
+          'min(' ~ (luks_data_volume_file_size_fraction * 100) ~ '% free, ' ~
+          luks_data_volume_file_size_cap_mb ~ 'MB)' }}). Sparse -- consumes real
+          disk only as it is written to.
+
+- name: Final stat, unconditional, own dedicated name
+  ansible.builtin.stat:
+    path: "{{ luks_data_volume_device }}"
+    get_checksum: false
+    get_mime: false
+  register: luks_data_volume_device_finalstat
+  check_mode: false
+
+- name: Refuse to proceed if the target device doesn't exist
+  ansible.builtin.assert:
+    that: luks_data_volume_device_finalstat.stat.exists
+    fail_msg: >-
+      {{ luks_data_volume_device }} does not exist on this box. Check the
+      attached-volume list before pointing this role at a device path. (A
+      /dev/* path is never auto-created; a plain file path failed to be
+      created above -- check the preceding task's output.)
+
+- name: Check whether the target device is already a LUKS volume
+  ansible.builtin.command: cryptsetup isLuks {{ luks_data_volume_device }}
+  register: luks_data_volume_is_luks
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Record whether a keyfile already exists locally for this volume
+  ansible.builtin.stat:
+    path: "{{ luks_data_volume_keyfile_path }}"
+  register: luks_data_volume_keyfile_stat
+  check_mode: false
+
+- name: "[caseforge] LUKS SKIPPED -- already encrypted, no local keyfile"
+  ansible.builtin.debug:
+    msg: >-
+      [caseforge][WARN] {{ luks_data_volume_device }} is already a LUKS
+      volume but no keyfile exists at {{ luks_data_volume_keyfile_path }} on
+      this box. Refusing to touch it -- this looks like a volume from another
+      box, or the keyfile was lost. Proceeding would either fail (no key to
+      unlock with) or, worse, someone "fixing" this by reformatting would
+      destroy whatever is on it. Resolve manually: supply the real key, or
+      confirm this device should be wiped and pass a different, genuinely
+      empty device instead.
+  when:
+    - luks_data_volume_is_luks.rc == 0
+    - not luks_data_volume_keyfile_stat.stat.exists
+
+- name: First-time LUKS setup (device is not yet encrypted)
+  when: luks_data_volume_is_luks.rc != 0
+  block:
+    - name: Generate a random keyfile
+      ansible.builtin.shell:
+        cmd: >
+          umask 077 &&
+          head -c 4096 /dev/urandom > {{ luks_data_volume_keyfile_path }}
+        creates: "{{ luks_data_volume_keyfile_path }}"
+
+    - name: Lock the keyfile down (0400 -- root read-only, not even root-write by accident)
+      ansible.builtin.file:
+        path: "{{ luks_data_volume_keyfile_path }}"
+        mode: "0400"
+        owner: root
+        group: root
+
+    - name: luksFormat the device with the generated keyfile
+      ansible.builtin.command: >
+        cryptsetup luksFormat --batch-mode {{ luks_data_volume_device }}
+        {{ luks_data_volume_keyfile_path }}
+
+- name: "[caseforge] LUKS device ready ({{ 'pre-existing' if luks_data_volume_is_luks.rc == 0 else 'newly formatted' }})"
+  ansible.builtin.debug:
+    msg: "[caseforge] {{ luks_data_volume_device }} is LUKS-encrypted."
+  when: luks_data_volume_is_luks.rc == 0 or true
+
+- name: Wire the volume into /etc/crypttab for unattended auto-unlock at boot
+  ansible.builtin.lineinfile:
+    path: /etc/crypttab
+    regexp: "^{{ luks_data_volume_mapper_name }}\\s"
+    line: "{{ luks_data_volume_mapper_name }} {{ luks_data_volume_device }} {{ luks_data_volume_keyfile_path }} {{ luks_data_volume_crypttab_options }}"
+    create: true
+    mode: "0600"
+
+- name: Check whether the mapped device is already open
+  ansible.builtin.stat:
+    path: "/dev/mapper/{{ luks_data_volume_mapper_name }}"
+  register: luks_data_volume_mapper_stat
+  check_mode: false
+
+- name: Open the volume now (crypttab covers future boots, this covers the current session)
+  ansible.builtin.command: >
+    cryptsetup luksOpen {{ luks_data_volume_device }}
+    {{ luks_data_volume_mapper_name }} --key-file {{ luks_data_volume_keyfile_path }}
+  when: not luks_data_volume_mapper_stat.stat.exists
+
+- name: Read the open mapping's flags
+  ansible.builtin.command: cryptsetup status {{ luks_data_volume_mapper_name }}
+  register: luks_data_volume_status
+  changed_when: false
+  check_mode: false
+
+- name: Allow discards on the open mapping
+  ansible.builtin.command: >
+    cryptsetup refresh --allow-discards --persistent {{ luks_data_volume_mapper_name }}
+    --key-file {{ luks_data_volume_keyfile_path }}
+  when:
+    - "'discard' in luks_data_volume_crypttab_options"
+    - "'discards' not in luks_data_volume_status.stdout"
+
+- name: Optional Clevis+Tang binding
+  when: luks_data_volume_tang_server_url | length > 0
+  block:
+    - name: Install clevis
+      ansible.builtin.apt:
+        name:
+          - clevis
+          - clevis-luks
+          - clevis-systemd
+        state: present
+
+    - name: Enable the late-boot Clevis unlock listener
+      ansible.builtin.systemd_service:
+        name: clevis-luks-askpass.path
+        enabled: true
+        state: started
+
+    - name: Check for an existing Clevis Tang binding on this device
+      ansible.builtin.command: clevis luks list -d {{ luks_data_volume_device }}
+      register: luks_data_volume_clevis_list
+      changed_when: false
+      failed_when: false
+      check_mode: false
+
+    - name: Bind the LUKS device to the configured Tang server
+      ansible.builtin.command: >
+        clevis luks bind -y -k {{ luks_data_volume_keyfile_path }}
+        -d {{ luks_data_volume_device }}
+        tang '{"url":"{{ luks_data_volume_tang_server_url }}"}'
+      no_log: true
+      when: "'tang' not in luks_data_volume_clevis_list.stdout"
+
+    - name: Switch /etc/crypttab to unlock via Tang instead of the local keyfile
+      ansible.builtin.lineinfile:
+        path: /etc/crypttab
+        regexp: "^{{ luks_data_volume_mapper_name }}\\s"
+        line: "{{ luks_data_volume_mapper_name }} {{ luks_data_volume_device }} none {{ luks_data_volume_crypttab_options }},_netdev"
+        create: true
+        mode: "0600"
+
+    - name: "[caseforge] Tang binding active -- boot now depends on Tang"
+      ansible.builtin.debug:
+        msg: >-
+          [caseforge] {{ luks_data_volume_device }} is bound to Tang at
+          {{ luks_data_volume_tang_server_url }} and /etc/crypttab now
+          unlocks via that server at boot, not the local keyfile. Real
+          trade-off, stated plainly: this box CANNOT boot unattended if it
+          cannot reach that Tang server -- Tang's own availability is now
+          load-bearing. The original keyfile keyslot at
+          {{ luks_data_volume_keyfile_path }} is untouched and still valid;
+          it is just no longer wired into crypttab while Tang is configured.
+          A human with console/rescue access can still use it directly
+          (cryptsetup luksOpen --key-file {{ luks_data_volume_keyfile_path }})
+          if Tang is ever unreachable and someone needs to intervene by hand.
+
+- name: Check whether the mapped device already has a filesystem
+  ansible.builtin.command: blkid /dev/mapper/{{ luks_data_volume_mapper_name }}
+  register: luks_data_volume_blkid
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Format the decrypted volume ext4 (only if it has no filesystem yet)
+  ansible.builtin.filesystem:
+    fstype: ext4
+    dev: "/dev/mapper/{{ luks_data_volume_mapper_name }}"
+  when: luks_data_volume_blkid.rc != 0
+
+- name: Ensure the mount point exists
+  ansible.builtin.file:
+    path: "{{ luks_data_volume_mount_path }}"
+    state: directory
+    mode: "0710"
+
+- name: Mount the decrypted volume, and persist it in fstab
+  ansible.builtin.mount:
+    path: "{{ luks_data_volume_mount_path }}"
+    src: "/dev/mapper/{{ luks_data_volume_mapper_name }}"
+    fstype: ext4
+    state: mounted
+
+- name: "[caseforge] encrypted volume mounted"
+  ansible.builtin.debug:
+    msg: >-
+      [caseforge] {{ luks_data_volume_device }} -> /dev/mapper/{{ luks_data_volume_mapper_name }}
+      -> {{ luks_data_volume_mount_path }}. Keyfile at {{ luks_data_volume_keyfile_path }}
+      (0400, root-only) enables unattended unlock at boot via /etc/crypttab.
+      This protects the volume's content if separated from this VM; it does
+      not protect against a root shell on this running box -- no disk
+      encryption scheme does.
+
+- name: Order docker.service after the encrypted mount
+  when: luks_data_volume_docker_requires_mount | bool
+  block:
+    - name: Ensure the docker.service drop-in directory exists
+      ansible.builtin.file:
+        path: /etc/systemd/system/docker.service.d
+        state: directory
+        mode: "0755"
+
+    - name: Write the docker.service RequiresMountsFor drop-in
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/docker.service.d/caseforge-luks-mount.conf
+        mode: "0644"
+        content: |
+          [Unit]
+          RequiresMountsFor={{ luks_data_volume_mount_path }}
+      register: luks_data_volume_docker_dropin
+
+    - name: Reload systemd after the docker drop-in changed
+      ansible.builtin.systemd_service:
+        daemon_reload: true
+      when: luks_data_volume_docker_dropin.changed
+
+- name: Ensure telemetry/ops subdirectories exist on the encrypted volume
+  ansible.builtin.file:
+    path: "{{ luks_data_volume_mount_path }}/{{ item }}"
+    state: directory
+    mode: "0700"
+  loop:
+    - telemetry
+    - ops
+
+- name: Ensure /etc/caseforge-automation exists
+  ansible.builtin.file:
+    path: /etc/caseforge-automation
+    state: directory
+    mode: "0755"
+
+- name: Write telemetry/ops path redirects for job-harness.sh and systemd to read
+  ansible.builtin.copy:
+    dest: /etc/caseforge-automation/luks-paths.env
+    mode: "0644"
+    content: |
+      CASEFORGE_TELEMETRY_ROOT="{{ luks_data_volume_mount_path }}/telemetry"
+      CASEFORGE_OPS_DB="{{ luks_data_volume_mount_path }}/ops/caseforge-ops.sqlite3"
+
+- name: "[caseforge] telemetry/ops redirected to encrypted storage"
+  ansible.builtin.debug:
+    msg: >-
+      [caseforge] CASEFORGE_TELEMETRY_ROOT/CASEFORGE_OPS_DB now point at
+      {{ luks_data_volume_mount_path }} via /etc/caseforge-automation/luks-paths.env.
+
+- name: Source telemetry/ops path redirects in interactive root shells too
+  ansible.builtin.blockinfile:
+    path: "{{ checkout_owner_home }}/.bashrc"
+    marker: "# CaseForge LUKS telemetry/ops redirect {mark}"
+    block: |
+      if [ -f /etc/caseforge-automation/luks-paths.env ]; then
+        set -a
+        . /etc/caseforge-automation/luks-paths.env
+        set +a
+      fi
+    create: true
+    owner: "{{ ansible_user }}"
+
+- name: Telemetry symlink onto the encrypted volume
+  when: luks_data_volume_link_telemetry | bool
+  block:
+    - name: Confirm the encrypted volume is mounted before linking telemetry onto it
+      ansible.builtin.command: mountpoint -q {{ luks_data_volume_mount_path }}
+      changed_when: false
+      check_mode: false
+
+    - name: Inspect the checkout's telemetry path without following a link
+      ansible.builtin.stat:
+        path: "{{ luks_data_volume_telemetry_link_path }}"
+        follow: false
+      register: luks_data_volume_telemetry_path_stat
+      check_mode: false
+
+    - name: Record whether telemetry is still a real directory
+      ansible.builtin.set_fact:
+        luks_data_volume_telemetry_is_real_dir: >-
+          {{ luks_data_volume_telemetry_path_stat.stat.exists
+             and luks_data_volume_telemetry_path_stat.stat.isdir
+             and not luks_data_volume_telemetry_path_stat.stat.islnk }}
+
+    - name: List what a real telemetry directory still holds
+      ansible.builtin.find:
+        paths: "{{ luks_data_volume_telemetry_link_path }}"
+        file_type: any
+        hidden: true
+      register: luks_data_volume_telemetry_dir_entries
+      check_mode: false
+      when: luks_data_volume_telemetry_is_real_dir | bool
+
+    - name: Refuse to replace a telemetry directory that still holds files
+      ansible.builtin.fail:
+        msg: >-
+          {{ luks_data_volume_telemetry_link_path }} is a real directory holding
+          {{ luks_data_volume_telemetry_dir_entries.matched | default(0) }} entries.
+          This role will not delete it. Merge it onto
+          {{ luks_data_volume_mount_path }}/telemetry and move the leftovers aside
+          (docs/2026-10-02-telemetry-luks-cutover.md), then re-run with --tags luks.
+      when:
+        - luks_data_volume_telemetry_is_real_dir | bool
+        - (luks_data_volume_telemetry_dir_entries.matched | default(0) | int) > 0
+
+    - name: Refuse when telemetry is a regular file rather than a directory or link
+      ansible.builtin.fail:
+        msg: >-
+          {{ luks_data_volume_telemetry_link_path }} exists and is neither a
+          directory nor a symlink. Inspect it by hand; this role will not remove it.
+      when:
+        - luks_data_volume_telemetry_path_stat.stat.exists
+        - not luks_data_volume_telemetry_path_stat.stat.isdir
+        - not luks_data_volume_telemetry_path_stat.stat.islnk
+
+    - name: Remove the empty telemetry directory so the link can take its place
+      ansible.builtin.command: rmdir {{ luks_data_volume_telemetry_link_path }}
+      when:
+        - luks_data_volume_telemetry_is_real_dir | bool
+        - (luks_data_volume_telemetry_dir_entries.matched | default(0) | int) == 0
+
+    - name: Link the checkout's telemetry onto the encrypted volume
+      ansible.builtin.file:
+        src: "{{ luks_data_volume_mount_path }}/telemetry"
+        dest: "{{ luks_data_volume_telemetry_link_path }}"
+        state: link
+        force: false
+        follow: false
+
+    - name: "[caseforge] telemetry linked onto encrypted storage"
+      ansible.builtin.debug:
+        msg: >-
+          [caseforge] {{ luks_data_volume_telemetry_link_path }} ->
+          {{ luks_data_volume_mount_path }}/telemetry. If the volume is not
+          mounted the link dangles and writes fail with ENOENT rather than
+          landing on the root disk.
+
+- name: Checkout scratch directories onto the encrypted volume
+  when: (luks_data_volume_linked_checkout_dirs | length) > 0
+  block:
+    - name: Confirm the encrypted volume is mounted before linking scratch directories
+      ansible.builtin.command: mountpoint -q {{ luks_data_volume_mount_path }}
+      changed_when: false
+      check_mode: false
+
+    - name: Ensure each scratch directory exists on the encrypted volume
+      ansible.builtin.file:
+        path: "{{ luks_data_volume_mount_path }}/{{ item }}"
+        state: directory
+        mode: "0700"
+      loop: "{{ luks_data_volume_linked_checkout_dirs }}"
+
+    - name: Inspect each scratch path without following a link
+      ansible.builtin.stat:
+        path: "{{ luks_data_volume_checkout_dir }}/{{ item }}"
+        follow: false
+      loop: "{{ luks_data_volume_linked_checkout_dirs }}"
+      register: luks_data_volume_scratch_stats
+      check_mode: false
+
+    - name: List what each real scratch directory still holds
+      ansible.builtin.find:
+        paths: "{{ item.stat.path }}"
+        file_type: any
+        hidden: true
+      when: item.stat.exists and item.stat.isdir and not item.stat.islnk
+      loop: "{{ luks_data_volume_scratch_stats.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+      register: luks_data_volume_scratch_entries
+      check_mode: false
+
+    - name: Refuse to replace a scratch directory that still holds files
+      ansible.builtin.fail:
+        msg: >-
+          {{ item.item.stat.path }} is a real directory holding {{ item.matched }} entries.
+          This role will not delete it. Move its contents onto
+          {{ luks_data_volume_mount_path }}/{{ item.item.item }} first, then re-run with --tags luks.
+      when: (item.matched | default(0) | int) > 0
+      loop: "{{ luks_data_volume_scratch_entries.results }}"
+      loop_control:
+        label: "{{ item.item.item }}"
+
+    - name: Remove an empty scratch directory so the link can take its place
+      ansible.builtin.command: rmdir {{ item.stat.path | quote }}
+      when: item.stat.exists and item.stat.isdir and not item.stat.islnk
+      loop: "{{ luks_data_volume_scratch_stats.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+
+    - name: Link each scratch directory onto the encrypted volume
+      ansible.builtin.file:
+        src: "{{ luks_data_volume_mount_path }}/{{ item }}"
+        dest: "{{ luks_data_volume_checkout_dir }}/{{ item }}"
+        state: link
+        force: false
+        follow: false
+      loop: "{{ luks_data_volume_linked_checkout_dirs }}"
+
+- name: Make the bare mount point immutable underneath the mounted volume
+  when: luks_data_volume_guard_bare_mountpoint | bool
+  ansible.builtin.shell:
+    executable: /bin/bash
+    cmd: |
+      set -euo pipefail
+      mp={{ luks_data_volume_mount_path | quote }}
+      mountpoint -q "$mp" || { echo not-mounted; exit 4; }
+      exec unshare --mount --propagation private /bin/bash -euo pipefail -c '
+        mp="$1"
+        parent_fs="$(findmnt -n -o TARGET --target "$(dirname "$mp")")"
+        rel="${mp#"${parent_fs%/}"}"
+        view="$(mktemp -d)"
+        trap "umount \"$view\" 2>/dev/null; rmdir \"$view\"" EXIT
+        mount --bind "$parent_fs" "$view"
+        under="$view$rel"
+        [ -d "$under" ] || { echo no-underlying-dir; exit 5; }
+        flags="$(lsattr -d "$under")"
+        case "${flags%% *}" in *i*) echo unchanged; exit 0 ;; esac
+        if [ -n "$(ls -A "$under")" ]; then echo underlying-not-empty; exit 3; fi
+        chattr +i "$under"
+        echo changed
+      ' _ "$mp"
+  register: luks_data_volume_mountpoint_guard
+  changed_when: "'changed' in luks_data_volume_mountpoint_guard.stdout"
+  failed_when: false
+
+- name: "[caseforge][WARN] bare mount point NOT made immutable"
+  ansible.builtin.debug:
+    msg: >-
+      [caseforge][WARN] could not set +i on the bare directory under
+      {{ luks_data_volume_mount_path }} (rc={{ luks_data_volume_mountpoint_guard.rc | default('n/a') }},
+      {{ luks_data_volume_mountpoint_guard.stdout | default('') }}{{ luks_data_volume_mountpoint_guard.stderr | default('') }}).
+      'underlying-not-empty' means files were written onto the root disk while
+      the volume was unmounted at some point: inspect them before setting +i by
+      hand. Until this is set, an unmounted volume lets writers recreate
+      telemetry/ in plaintext.
+  when:
+    - luks_data_volume_guard_bare_mountpoint | bool
+    - luks_data_volume_mountpoint_guard is not skipped
+    - luks_data_volume_mountpoint_guard.rc | default(1) != 0
+
+- name: Check for az CLI login (best-effort Key Vault keyfile backup)
+  ansible.builtin.command: az account show
+  register: luks_data_volume_az_check
+  changed_when: false
+  check_mode: false
+  failed_when: false
+  when: luks_data_volume_is_luks.rc != 0
+
+- name: Back up the newly generated keyfile to Key Vault
+  ansible.builtin.command:
+    cmd: >
+      az keyvault secret set --vault-name {{ secrets_bootstrap_vault_name | default('set-your-key-vault-name-here') }}
+      --name luks-data-volume-keyfile-{{ luks_data_volume_mapper_name }}
+      --file {{ luks_data_volume_keyfile_path }}
+    stdin_add_newline: false
+  when:
+    - luks_data_volume_is_luks.rc != 0
+    - luks_data_volume_az_check is defined
+    - luks_data_volume_az_check.rc == 0
+  no_log: true
+  changed_when: true
+  register: luks_data_volume_kv_backup
+  failed_when: false
+
+- name: "[caseforge] keyfile Key Vault backup"
+  ansible.builtin.debug:
+    msg: >-
+      [caseforge] {{ 'keyfile backed up to Key Vault as luks-data-volume-keyfile-' ~ luks_data_volume_mapper_name
+                     if (luks_data_volume_kv_backup is defined and luks_data_volume_kv_backup is not skipped and luks_data_volume_kv_backup.rc | default(1) == 0)
+                     else '[caseforge][WARN] keyfile NOT backed up to Key Vault (no az login, or this was not a first-time format) -- if this root disk is lost, the encrypted volume is unrecoverable' }}
+  when: luks_data_volume_is_luks.rc != 0

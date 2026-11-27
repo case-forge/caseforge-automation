@@ -1,0 +1,8 @@
+[Unit]
+Description=Hourly log of which services write how much to the root disk (cgroup write counters, with the busiest processes)
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /usr/local/sbin/ikoro-disk-writes
+Nice=10
+IOSchedulingClass=idle

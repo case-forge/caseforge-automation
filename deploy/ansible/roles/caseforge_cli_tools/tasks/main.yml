@@ -1,0 +1,57 @@
+---
+- name: "[caseforge] CLI tools role disabled for this box"
+  ansible.builtin.debug:
+    msg: "[caseforge] Skipping bundletool/envelope-guide/chambers-finder checkout: caseforge_cli_tools_enabled is false."
+  when: not (caseforge_cli_tools_enabled | bool)
+
+- name: Check for an existing checkout (dev box's caseforge-website copy)
+  ansible.builtin.stat:
+    path: "{{ checkout_owner_home }}/caseforge-website/{{ item.merged_relpath }}/{{ item.entry }}"
+  register: caseforge_cli_tools_merged_stat
+  loop: "{{ caseforge_cli_tools }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: caseforge_cli_tools_enabled | bool
+
+- name: Check for an existing standalone checkout
+  ansible.builtin.stat:
+    path: "{{ checkout_owner_home }}/{{ item.name }}/{{ item.standalone_entry }}"
+  register: caseforge_cli_tools_standalone_stat
+  loop: "{{ caseforge_cli_tools }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: caseforge_cli_tools_enabled | bool
+
+- name: Clone a missing standalone checkout (public repo, no deploy key needed)
+  ansible.builtin.git:
+    repo: "{{ item.0.repo }}"
+    dest: "{{ checkout_owner_home }}/{{ item.0.name }}"
+    version: main
+  become: false
+  loop: "{{ caseforge_cli_tools | zip(caseforge_cli_tools_merged_stat.results, caseforge_cli_tools_standalone_stat.results) | list }}"
+  loop_control:
+    label: "{{ item.0.name }}"
+  when: >-
+    (caseforge_cli_tools_enabled | bool)
+    and not item.1.stat.exists
+    and not item.2.stat.exists
+
+- name: Check for each tool's package.json (clone may have just created it)
+  ansible.builtin.stat:
+    path: "{{ checkout_owner_home }}/{{ item.name }}/package.json"
+  register: caseforge_cli_tools_package_json_stat
+  loop: "{{ caseforge_cli_tools }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: caseforge_cli_tools_enabled | bool
+
+- name: npm install for whichever standalone checkouts exist now
+  community.general.npm:
+    path: "{{ checkout_owner_home }}/{{ item.0.name }}"
+  become: false
+  loop: "{{ caseforge_cli_tools | zip(caseforge_cli_tools_package_json_stat.results) | list }}"
+  loop_control:
+    label: "{{ item.0.name }}"
+  when: >-
+    (caseforge_cli_tools_enabled | bool)
+    and item.1.stat.exists

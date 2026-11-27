@@ -1,0 +1,9 @@
+---
+repo_checkout_dir: "{{ checkout_owner_home }}/caseforge-automation"
+repo_checkout_ssh_url: "git@github.com:case-forge/caseforge-automation.git"
+repo_checkout_enabled: true
+
+repo_checkout_prune_window: "90.days.ago"
+
+git_identity_name: "CaseForge"
+git_identity_email: "hello@caseforge.uk"

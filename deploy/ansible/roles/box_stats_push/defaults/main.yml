@@ -1,0 +1,6 @@
+---
+box_stats_push_enabled: false
+box_stats_push_unit_dir: "{{ checkout_owner_home }}/.config/systemd/user"
+box_stats_push_units:
+  - caseforge-box-stats-push.service
+  - caseforge-box-stats-push.timer

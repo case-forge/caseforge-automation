@@ -1,0 +1,4 @@
+---
+tailscale_serve_https: []
+
+tailscale_serve_timeout: 60

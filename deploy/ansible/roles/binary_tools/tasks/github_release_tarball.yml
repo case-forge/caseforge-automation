@@ -1,0 +1,38 @@
+---
+- name: "{{ release_tool.name }}: check if already installed"
+  ansible.builtin.stat:
+    path: "{{ release_tool.install_path }}"
+  register: bt_tarball_existing
+
+- name: "{{ release_tool.name }}: download + install"
+  when: not bt_tarball_existing.stat.exists
+  block:
+    - name: "{{ release_tool.name }}: compute arch-specific asset name"
+      ansible.builtin.set_fact:
+        bt_tarball_asset: "{{ release_tool.asset_template | replace('{arch}', release_tool.arch_map[ansible_architecture]) }}"
+
+    - name: "{{ release_tool.name }}: download release tarball"
+      ansible.builtin.get_url:
+        url: "https://github.com/{{ release_tool.repo }}/releases/latest/download/{{ bt_tarball_asset }}"
+        dest: "/tmp/{{ release_tool.name }}.tar.gz"
+        mode: "0644"
+
+    - name: "{{ release_tool.name }}: extract binary"
+      ansible.builtin.unarchive:
+        src: "/tmp/{{ release_tool.name }}.tar.gz"
+        dest: /tmp
+        remote_src: true
+        include:
+          - "{{ release_tool.binary_in_archive }}"
+
+    - name: "{{ release_tool.name }}: install to {{ release_tool.install_path }}"
+      ansible.builtin.copy:
+        src: "/tmp/{{ release_tool.binary_in_archive }}"
+        dest: "{{ release_tool.install_path }}"
+        mode: "0755"
+        remote_src: true
+
+    - name: "{{ release_tool.name }}: clean up download"
+      ansible.builtin.file:
+        path: "/tmp/{{ release_tool.name }}.tar.gz"
+        state: absent

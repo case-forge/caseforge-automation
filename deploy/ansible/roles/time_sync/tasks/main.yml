@@ -1,0 +1,43 @@
+---
+
+- name: Detect WSL
+  ansible.builtin.set_fact:
+    time_sync_is_wsl: "{{ ansible_kernel is search('microsoft', ignorecase=true) }}"
+
+- name: Timezone and clock synchronisation (skipped under WSL)
+  when: not time_sync_is_wsl
+  block:
+    - name: Set system timezone
+      community.general.timezone:
+        name: "{{ time_sync_timezone }}"
+
+
+    - name: Ensure systemd-timesyncd is enabled and running
+      ansible.builtin.systemd_service:
+        name: systemd-timesyncd
+        enabled: true
+        state: started
+
+    - name: Read clock synchronisation state
+      ansible.builtin.command: timedatectl show --property=NTPSynchronized --value
+      register: time_sync_ntp_state
+      changed_when: false
+      check_mode: false
+
+    - name: Wait for the clock to actually be synchronised
+      ansible.builtin.command: timedatectl show --property=NTPSynchronized --value
+      register: time_sync_ntp_recheck
+      until: time_sync_ntp_recheck.stdout | trim == 'yes'
+      retries: 6
+      delay: 5
+      changed_when: false
+      check_mode: false
+      when:
+        - time_sync_require_synchronised | bool
+        - time_sync_ntp_state.stdout | trim != 'yes'
+
+    - name: "[caseforge] time sync"
+      ansible.builtin.debug:
+        msg: >-
+          [caseforge] timezone={{ time_sync_timezone }}
+          synchronised={{ (time_sync_ntp_recheck.stdout | default(time_sync_ntp_state.stdout)) | trim }}

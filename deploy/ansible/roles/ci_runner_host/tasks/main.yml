@@ -1,0 +1,7 @@
+---
+- name: CI runner host packages present
+  ansible.builtin.apt:
+    name: "{{ ci_runner_host_packages }}"
+    state: present
+    update_cache: true
+    cache_valid_time: 3600

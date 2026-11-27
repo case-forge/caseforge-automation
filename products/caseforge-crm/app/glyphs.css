@@ -1,0 +1,76 @@
+
+.sync-glyph { display: inline-flex; align-items: center; gap: 0.3em; vertical-align: -0.12em; }
+.sync-glyph svg, .status-shape svg { width: 1em; height: 1em; flex: none; }
+.sync-bars { display: inline-flex; align-items: center; gap: 2px; }
+.sync-bar { width: 0.42em; height: 0.8em; border-radius: 2px; background: currentColor; opacity: 0.22; }
+.sync-bar[data-on="true"] { opacity: 1; }
+.status-shape { display: inline-flex; vertical-align: -0.12em; }
+.cf-btn svg { width: 1.05em; height: 1.05em; flex: none; }
+.todo-check-wrap { position: relative; display: inline-flex; margin-top: var(--sp-1); }
+.todo-check-wrap .todo-check { appearance: none; margin: 0; width: 1.15rem; height: 1.15rem; border: 1.5px solid var(--muted); border-radius: 50%; background: none; cursor: pointer; }
+.todo-check-wrap .todo-check:checked { background: var(--todo-fg); border-color: var(--todo-fg); }
+.todo-check-wrap .todo-check:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.todo-check-wrap svg { position: absolute; inset: 0; margin: auto; width: 0.75rem; height: 0.75rem; color: var(--bg); pointer-events: none; opacity: 0; stroke-width: 3; }
+.todo-check-wrap .todo-check:checked + svg { opacity: 1; }
+.cf2-mode svg { width: 1em; height: 1em; vertical-align: -0.12em; }
+.attention-item-pill svg, .sort-header-arrow svg, .nearest-help-toggle svg, .today-item-line svg, .review-mail a svg, .review-mail button svg, .proposal-item-diff svg { width: 1em; height: 1em; vertical-align: -0.12em; }
+.status-shape svg { width: 1em; height: 1em; }
+
+.an-form {
+  --field-edge: color-mix(in srgb, var(--fg) var(--edge-mix), transparent);
+
+  background: none;
+  box-shadow: none;
+  border-radius: 0;
+  padding: var(--sp-1) 0 var(--sp-4);
+}
+.an-form .an-form-actions {
+  padding-bottom: var(--sp-4);
+  border-bottom: 1px solid var(--border);
+}
+
+.client-edits--bar .edit-form--bar { margin-top: 0; background: none; box-shadow: none; border-radius: 0; padding: var(--sp-1) 0 0; }
+.client-edits--bar .edit-form--bar .edit-form-actions { padding-bottom: var(--sp-4); border-bottom: 1px solid var(--border); }
+.an-form textarea,
+.an-form select,
+.an-form .an-form-text,
+.an-form .an-form-other {
+  background: var(--bg);
+  border: 1px solid var(--field-edge);
+  border-radius: var(--radius-sm);
+}
+.an-form textarea:focus-visible,
+.an-form select:focus-visible,
+.an-form .an-form-text:focus-visible {
+  border-color: var(--accent);
+}
+
+:root { --edge-mix: 50%; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --edge-mix: 34%; } }
+:root[data-theme="dark"] { --edge-mix: 34%; }
+
+.edit-input,
+.case-select,
+.todo-add-input,
+.todo-search,
+.todo-sort,
+.todo-add-row select {
+  --field-edge: color-mix(in srgb, var(--fg) var(--edge-mix), transparent);
+  background: var(--bg);
+  border: 1px solid var(--field-edge);
+  box-shadow: none;
+}
+.edit-input:focus,
+.case-select:focus-visible,
+.todo-add-input:focus-visible,
+.todo-search:focus-visible,
+.todo-sort:focus-visible {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-focus);
+}
+.switcher-hint kbd svg { width: 0.9em; height: 0.9em; vertical-align: -0.1em; }
+
+.detail-section-title--with-edit { display: flex; align-items: center; gap: var(--sp-2); }
+.section-edit-button { width: 2rem; height: 2rem; border-radius: var(--radius-sm); color: var(--muted); }
+.section-edit-button svg { width: 1.15rem; height: 1.15rem; }
+.section-edit-button:hover:not(:disabled), .section-edit-button:focus-visible { color: var(--fg); }

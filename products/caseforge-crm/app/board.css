@@ -1,0 +1,12 @@
+
+.board-confirm-backdrop { position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; padding: var(--sp-4); background: var(--scrim); }
+.board-confirm { width: min(26rem, 100%); padding: var(--sp-4) var(--sp-4); border-radius: var(--radius-sm); background: var(--panel); color: var(--fg); box-shadow: var(--shadow-md); }
+.board-confirm-title { margin: 0 0 var(--sp-2); font-size: var(--fs-heading); }
+.board-confirm-note { margin: 0 0 var(--sp-2); font-size: var(--fs-body); color: var(--muted); }
+.board-confirm-note--error { color: var(--error-fg); }
+.board-confirm-variants { margin: 0 0 var(--sp-2); padding: 0; border: 0; display: flex; flex-direction: column; gap: var(--sp-1); font-size: var(--fs-body); }
+.board-confirm-variants legend { padding: 0; margin-bottom: var(--sp-1); font-weight: 600; }
+.board-confirm-name { display: flex; flex-direction: column; gap: var(--sp-1); margin: 0 0 var(--sp-2); font-size: var(--fs-label); color: var(--muted); }
+.board-confirm-name input { padding: var(--sp-1) var(--sp-2); border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--fg); font: inherit; }
+.board-confirm-hint { margin: 0 0 var(--sp-3); font-size: var(--fs-label); color: var(--muted); }
+.board-confirm-actions { display: flex; justify-content: flex-end; gap: var(--sp-2); }

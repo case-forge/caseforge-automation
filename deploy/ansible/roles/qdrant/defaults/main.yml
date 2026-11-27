@@ -1,0 +1,24 @@
+---
+
+qdrant_image: "qdrant/qdrant:v1.20.2"
+
+qdrant_http_port: 6333
+qdrant_grpc_port: 6334
+qdrant_container_name: caseforge-qdrant
+
+qdrant_compose_dir: /opt/caseforge-qdrant
+
+qdrant_volume_name: caseforge-qdrant-storage
+
+qdrant_install_mode: docker
+
+qdrant_native_version: v1.19.1
+
+qdrant_use_luks_storage: "{{ postgres_enabled | default(false) }}"
+qdrant_data_subdir: qdrant-data
+
+qdrant_snapshots_subdir: ""
+
+qdrant_api_key: ""
+
+qdrant_readonly_api_key: ""

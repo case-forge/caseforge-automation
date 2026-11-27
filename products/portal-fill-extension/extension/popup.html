@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <section id="empty">
+      <label for="paste">Paste the answers export for one client</label>
+      <textarea id="paste" rows="5" spellcheck="false"></textarea>
+      <button id="load" type="button">Load</button>
+    </section>
+    <section id="loaded" hidden>
+      <p id="who"></p>
+      <p id="c8" class="notice" hidden>This export holds the client's confidential (C8) contact details. Keep it away from the respondent and anything they can see.</p>
+      <label><input id="confirm" type="checkbox" /> This is the client whose application is open</label>
+      <button id="fill" type="button" disabled>Fill this page</button>
+      <button id="clear" type="button">Clear</button>
+    </section>
+    <p id="message" role="status"></p>
+    <ul id="report"></ul>
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

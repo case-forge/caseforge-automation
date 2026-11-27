@@ -1,0 +1,65 @@
+---
+base_packages_target_ubuntu_version: "24.04"
+
+base_packages_dev_ubuntu_versions: ["24.04", "26.04"]
+base_packages_accepted_ubuntu_versions: "{{ base_packages_dev_ubuntu_versions if base_packages_tier == 'dev' else [base_packages_target_ubuntu_version] }}"
+
+base_packages_min_ram_mb_dev: 7500
+base_packages_min_ram_mb_production: 7500
+base_packages_min_vcpus_dev: 4
+base_packages_min_vcpus_production: 4
+base_packages_min_disk_gb_dev: 90
+base_packages_min_disk_gb_production: 150
+base_packages_list:
+  - curl
+  - ca-certificates
+  - git
+  - cron
+  - gh
+  - unzip
+  - jq
+  - rsync
+  - sqlite3
+  - postgresql-client
+  - ripgrep
+  - bubblewrap
+  - ufw
+  - fail2ban
+  - nmap
+  - mosh
+  - python3
+  - python-is-python3
+  - python3-pip
+  - python3-venv
+  - wget
+  - apt-transport-https
+  - gpg
+  - bzip2
+  - tesseract-ocr
+  - poppler-utils
+  - wbritish
+  - wamerican
+  - pandoc
+  - lsb-release
+  - openssh-client
+  - mc
+  - micro
+  - iw
+
+base_packages_dev_list:
+  - yamllint
+  - ansible-lint
+  - fd-find
+  - libreoffice-writer
+  - ocrmypdf
+
+unattended_upgrades_enabled: true
+
+unattended_upgrades_origins:
+  - "${distro_id}:${distro_codename}-security"
+  - "${distro_id}ESMApps:${distro_codename}-apps-security"
+  - "${distro_id}ESM:${distro_codename}-infra-security"
+
+unattended_upgrades_nightly_vendor_origins: []
+
+unattended_upgrades_automatic_reboot: false

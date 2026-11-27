@@ -1,0 +1,33 @@
+---
+systemd_services_enabled: true
+
+systemd_services_units: []
+
+systemd_services_timers: []
+
+systemd_services_persistent: []
+
+systemd_services_dropins: []
+
+systemd_services_retired:
+  - ngene-exfil-detector.timer
+  - ngene-exfil-detector.service
+  - caseforge-exfil-detector.timer
+  - caseforge-exfil-detector.service
+  - ikoro-disk-usage-alert.timer
+  - ikoro-disk-usage-alert.service
+  - caseforge-disk-usage-alert.timer
+  - caseforge-disk-usage-alert.service
+  - caseforge-az-process-alert.timer
+  - caseforge-az-process-alert.service
+  - caseforge-chat-intern.service
+
+systemd_services_templated_units: []
+
+mosh_reaper_enabled: false
+
+mosh_reaper_protos: "mosh,ssh"
+
+mosh_reaper_min_age_to_win: 0
+
+zellij_reaper_enabled: false

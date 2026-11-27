@@ -1,0 +1,10 @@
+---
+cron_jobs_enabled: false
+
+cron_jobs_timezone: Europe/London
+
+cron_jobs_retired: []
+
+cron_jobs: []
+
+cron_jobs_fleet_names: "{{ groups.get('production', []) | map('extract', hostvars, 'cron_jobs') | flatten | map(attribute='name') | list }}"

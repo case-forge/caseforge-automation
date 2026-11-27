@@ -1,0 +1,20 @@
+---
+- name: "[caseforge] session_reapers checkout skipped for this box"
+  ansible.builtin.debug:
+    msg: >-
+      [caseforge] Skipping session-reapers checkout: neither mosh_reaper_enabled
+      nor zellij_reaper_enabled is true for this host.
+  when: not (session_reapers_checkout_enabled | bool)
+
+- name: Check if session-reapers already checked out
+  ansible.builtin.stat:
+    path: "{{ session_reapers_checkout_dir }}/.git"
+  register: session_reapers_checkout_existing
+  when: session_reapers_checkout_enabled | bool
+
+- name: Clone session-reapers
+  ansible.builtin.git:
+    repo: "{{ session_reapers_ssh_url }}"
+    dest: "{{ session_reapers_checkout_dir }}"
+    accept_hostkey: true
+  when: (session_reapers_checkout_enabled | bool) and not session_reapers_checkout_existing.stat.exists

@@ -1,0 +1,9 @@
+---
+memory_tuning_swapfile_path: /swapfile
+memory_tuning_swapfile_size_mb: 4096
+memory_tuning_tmp_size_mb: 2048
+memory_tuning_tmp_size_max_mb: 2048
+memory_tuning_tmp_size: "{{ memory_tuning_tmp_size_mb }}M"
+memory_tuning_shm_size: 4G
+memory_tuning_watchdog: true
+memory_tuning_earlyoom_avoid: "(^|/)(postgres|cloudflared|dockerd|sshd|tailscaled)$"

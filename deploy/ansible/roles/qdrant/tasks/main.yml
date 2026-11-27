@@ -1,0 +1,231 @@
+---
+
+
+- name: Probe whether anything already answers on the qdrant HTTP port
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ qdrant_http_port }}/collections"
+    headers: "{{ {'api-key': qdrant_api_key} if qdrant_api_key else {} }}"
+    timeout: 3
+  register: qdrant_port_probe
+  failed_when: false
+  changed_when: false
+  check_mode: false
+
+- name: Look for native qdrant artefacts (binary and systemd --user unit)
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  register: qdrant_native_artefacts
+  loop:
+    - "{{ checkout_owner_home }}/.local/bin/qdrant"
+    - "{{ checkout_owner_home }}/.config/systemd/user/qdrant.service"
+    - "{{ checkout_owner_home }}/.local/share/qdrant/storage"
+
+- name: Record whether a native qdrant install exists on this box
+  ansible.builtin.set_fact:
+    qdrant_native_present: "{{ qdrant_native_artefacts.results | selectattr('stat.exists') | list | length > 0 }}"
+    qdrant_port_occupied: "{{ qdrant_port_probe.status is defined and qdrant_port_probe.status == 200 }}"
+
+- name: Identify what already owns the port, if anything
+  ansible.builtin.command: "docker ps --filter name=^/{{ qdrant_container_name }}$ --format {{ '{{.Names}}' }}"
+  register: qdrant_existing_container
+  changed_when: false
+  failed_when: false
+  when: qdrant_port_occupied
+  check_mode: false
+
+- name: Record whether the port is held by OUR container (idempotent re-run) or something else
+  ansible.builtin.set_fact:
+    qdrant_port_is_ours: >-
+      {{ qdrant_port_occupied
+         and qdrant_existing_container.stdout is defined
+         and qdrant_container_name in qdrant_existing_container.stdout }}
+
+
+- name: "[caseforge] qdrant SKIPPED -- a native install owns this box"
+  ansible.builtin.debug:
+    msg: >-
+      [caseforge] qdrant skipped: native qdrant artefacts found
+      ({{ qdrant_native_artefacts.results | selectattr('stat.exists') | map(attribute='item') | list | join(', ') }}).
+      Refusing to start a container that would contend for port
+      {{ qdrant_http_port }} or a second storage path. This box is
+      deliberately left on its native install -- migrate it explicitly via
+      the snapshot/restore path, never by provisioning over the top.
+  when: qdrant_native_present
+
+- name: "[caseforge] qdrant SKIPPED -- port {{ qdrant_http_port }} held by something else"
+  ansible.builtin.debug:
+    msg: >-
+      [caseforge] qdrant skipped: something already answers on
+      127.0.0.1:{{ qdrant_http_port }} and it is not the
+      {{ qdrant_container_name }} container. Not fighting it.
+  when:
+    - qdrant_port_occupied
+    - not qdrant_port_is_ours
+    - not qdrant_native_present
+
+- name: Provision Qdrant as a Docker container
+  when:
+    - qdrant_install_mode == 'docker'
+    - not qdrant_native_present
+    - (not qdrant_port_occupied) or qdrant_port_is_ours
+  block:
+    - name: Ensure the compose directory exists
+      ansible.builtin.file:
+        path: "{{ qdrant_compose_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Read CASEFORGE_QDRANT_API_KEY from the generated env file
+      ansible.builtin.shell:
+        cmd: >
+          set -a; . {{ repo_checkout_dir }}/.secrets/caseforge-env 2>/dev/null; set +a;
+          printf '%s' "${CASEFORGE_QDRANT_API_KEY:-}"
+        executable: /bin/bash
+      register: qdrant_api_key_lookup
+      when: (qdrant_api_key | length == 0) and (repo_checkout_enabled | bool)
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      become: false
+      no_log: true
+
+    - name: Use the looked-up API key if one wasn't passed explicitly
+      ansible.builtin.set_fact:
+        qdrant_api_key: "{{ qdrant_api_key_lookup.stdout }}"
+      when:
+        - qdrant_api_key | length == 0
+        - qdrant_api_key_lookup is defined
+        - qdrant_api_key_lookup.stdout is defined
+        - qdrant_api_key_lookup.stdout | length > 0
+      no_log: true
+
+    - name: Read CASEFORGE_QDRANT_READONLY_API_KEY from the generated env file
+      ansible.builtin.shell:
+        cmd: >
+          set -a; . {{ repo_checkout_dir }}/.secrets/caseforge-env 2>/dev/null; set +a;
+          printf '%s' "${CASEFORGE_QDRANT_READONLY_API_KEY:-}"
+        executable: /bin/bash
+      register: qdrant_readonly_api_key_lookup
+      when: (qdrant_readonly_api_key | length == 0) and (repo_checkout_enabled | bool)
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      become: false
+      no_log: true
+
+    - name: Use the looked-up read-only key if one wasn't passed explicitly
+      ansible.builtin.set_fact:
+        qdrant_readonly_api_key: "{{ qdrant_readonly_api_key_lookup.stdout }}"
+      when:
+        - qdrant_readonly_api_key | length == 0
+        - qdrant_readonly_api_key_lookup is defined
+        - qdrant_readonly_api_key_lookup.stdout is defined
+        - qdrant_readonly_api_key_lookup.stdout | length > 0
+      no_log: true
+
+    - name: Confirm the LUKS-encrypted volume is actually mounted, if this box needs it
+      ansible.builtin.command: mountpoint -q {{ luks_data_volume_mount_path }}
+      register: qdrant_luks_mount_check
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      when: qdrant_use_luks_storage | bool
+
+    - name: Refuse to provision qdrant-on-LUKS if the encrypted volume isn't mounted
+      ansible.builtin.assert:
+        that: qdrant_luks_mount_check.rc == 0
+        fail_msg: >-
+          {{ luks_data_volume_mount_path }} is not a mount point. Run
+          roles/luks_data_volume first -- this role will not silently put
+          client document embeddings on unencrypted storage instead.
+      when: qdrant_use_luks_storage | bool
+
+    - name: Compute the actual data path under the encrypted mount
+      ansible.builtin.set_fact:
+        qdrant_host_data_path: "{{ luks_data_volume_mount_path }}/{{ qdrant_data_subdir }}"
+      when: qdrant_use_luks_storage | bool
+
+    - name: Compute the snapshots path under the encrypted mount, if configured separately
+      ansible.builtin.set_fact:
+        qdrant_host_snapshots_path: "{{ luks_data_volume_mount_path }}/{{ qdrant_snapshots_subdir }}"
+      when: (qdrant_use_luks_storage | bool) and (qdrant_snapshots_subdir | length > 0)
+
+    - name: Ensure the snapshots subdirectory exists, if configured separately
+      ansible.builtin.file:
+        path: "{{ qdrant_host_snapshots_path }}"
+        state: directory
+        mode: "0700"
+      when: (qdrant_use_luks_storage | bool) and (qdrant_snapshots_subdir | length > 0)
+
+    - name: Ensure the data subdirectory exists on the encrypted volume
+      ansible.builtin.file:
+        path: "{{ qdrant_host_data_path }}"
+        state: directory
+        mode: "0700"
+      when: qdrant_use_luks_storage | bool
+
+    - name: Discover this box's tailnet IPv4 (if enrolled)
+      ansible.builtin.command: tailscale ip -4
+      register: qdrant_tailscale_ip
+      changed_when: false
+      check_mode: false
+      failed_when: false
+
+    - name: Record the tailnet bind address, if there is one
+      ansible.builtin.set_fact:
+        qdrant_tailnet_ip: >-
+          {{ (qdrant_tailscale_ip.stdout | trim | split('\n') | first)
+             if (qdrant_tailscale_ip.rc == 0 and qdrant_tailscale_ip.stdout | trim | length > 0)
+             else '' }}
+
+    - name: Write the API key to a private .env (never inlined into compose.yml)
+      ansible.builtin.copy:
+        content: |-
+          QDRANT_API_KEY={{ qdrant_api_key }}
+          {% if qdrant_readonly_api_key | length > 0 -%}
+          QDRANT_READONLY_API_KEY={{ qdrant_readonly_api_key }}
+          {% endif -%}
+        dest: "{{ qdrant_compose_dir }}/.env"
+        mode: "0600"
+      when: qdrant_api_key | length > 0
+      no_log: true
+
+    - name: Render the qdrant compose file
+      ansible.builtin.template:
+        src: compose.yml.j2
+        dest: "{{ qdrant_compose_dir }}/compose.yml"
+        mode: "0644"
+      register: qdrant_compose_file
+
+    - name: Bring qdrant up
+      ansible.builtin.command:
+        cmd: docker compose up -d
+        chdir: "{{ qdrant_compose_dir }}"
+      register: qdrant_compose_up
+      changed_when: "'Started' in qdrant_compose_up.stderr or 'Created' in qdrant_compose_up.stderr"
+
+    - name: Wait for qdrant to answer
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ qdrant_http_port }}/collections"
+        headers: "{{ {'api-key': qdrant_api_key} if qdrant_api_key else {} }}"
+        timeout: 5
+      register: qdrant_ready
+      retries: 12
+      delay: 5
+      until: qdrant_ready.status is defined and qdrant_ready.status == 200
+      check_mode: false
+
+    - name: "[caseforge] qdrant container up"
+      ansible.builtin.debug:
+        msg: >-
+          [caseforge] qdrant {{ qdrant_image }} running as {{ qdrant_container_name }},
+          bound to 127.0.0.1{{ (' + ' + qdrant_tailnet_ip) if qdrant_tailnet_ip else ' only (no tailnet IP found)' }}:{{ qdrant_http_port }}.
+          Storage: {{ ('LUKS-encrypted volume at ' ~ qdrant_host_data_path) if qdrant_use_luks_storage | bool
+                       else ('named volume ' ~ qdrant_volume_name) }}
+          (EMPTY on a fresh box -- restore from snapshot is a separate deliberate step).
+
+- name: Provision Qdrant natively (explicit opt-in only)
+  ansible.builtin.include_tasks: native.yml
+  when:
+    - qdrant_install_mode == 'native'
+    - not qdrant_port_occupied

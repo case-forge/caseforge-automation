@@ -1,0 +1,26 @@
+---
+postgres_mode: container
+
+postgres_image: "postgres:16.15-alpine"
+
+postgres_container_name: caseforge-postgres
+postgres_port: 5432
+
+postgres_data_subdir: postgres-data
+
+postgres_compose_dir: /opt/caseforge-postgres
+
+postgres_db_name: valclientdb
+postgres_db_user: valclientdb
+
+postgres_db_password: ""
+
+postgres_native_version: "16"
+postgres_native_cluster: main
+postgres_native_service: "postgresql@{{ postgres_native_version }}-{{ postgres_native_cluster }}"
+
+postgres_native_data_subdir: postgres-native
+
+postgres_native_locale: C.UTF-8
+
+postgres_native_tailnet_cidr: 100.64.0.0/10

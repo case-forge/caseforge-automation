@@ -1,0 +1,3 @@
+---
+disk_writes_enabled: false
+disk_writes_script_dest: /usr/local/sbin/ikoro-disk-writes

@@ -1,0 +1,33 @@
+{{ ansible_managed | comment }}
+
+[Unit]
+Description=cloudflared tunnel connector
+After=network-online.target tailscaled.service
+Wants=network-online.target
+OnFailure=caseforge-failure-alert@%n.service
+
+[Service]
+Type=notify
+EnvironmentFile={{ cloudflared_env_file }}
+ExecStart=/usr/bin/cloudflared --no-autoupdate tunnel --metrics {{ cloudflared_metrics_bind }} run
+Restart=on-failure
+RestartSec=5s
+TimeoutStartSec=30s
+
+DynamicUser=yes
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+RestrictNamespaces=yes
+LockPersonality=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+
+[Install]
+WantedBy=multi-user.target

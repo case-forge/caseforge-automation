@@ -1,0 +1,51 @@
+---
+- name: "[caseforge] box_status link skipped for this box"
+  ansible.builtin.debug:
+    msg: "[caseforge] Skipping box-status: box_status_checkout_enabled is not set for this host."
+  when: not (box_status_checkout_enabled | bool)
+
+- name: Check what sits at the box-status path
+  ansible.builtin.stat:
+    path: "{{ box_status_link }}"
+    follow: false
+  register: box_status_existing
+  when: box_status_checkout_enabled | bool
+
+- name: "[caseforge] an old standalone box-status clone is in the way"
+  ansible.builtin.debug:
+    msg: "[caseforge] {{ box_status_link }} is a real directory (the old standalone clone). Move it aside, then rerun with --tags box-status."
+  when:
+    - box_status_checkout_enabled | bool
+    - box_status_existing.stat.exists
+    - not box_status_existing.stat.islnk
+
+- name: Link the Stop hook path to the in-repo copy
+  ansible.builtin.file:
+    src: "{{ box_status_source }}"
+    dest: "{{ box_status_link }}"
+    state: link
+  become: false
+  when:
+    - box_status_checkout_enabled | bool
+    - not box_status_existing.stat.exists
+
+- name: Make the settings directory
+  ansible.builtin.file:
+    path: "{{ box_status_env_dir }}"
+    state: directory
+    mode: "0755"
+  become: false
+  when: box_status_checkout_enabled | bool
+
+- name: Write the per-box settings file the hook reads
+  ansible.builtin.copy:
+    dest: "{{ box_status_env_dir }}/env"
+    content: |
+      BOX_STATUS_PROD_HOST={{ box_status_prod_host }}
+      BOX_STATUS_PROD_REPO={{ box_status_prod_repo }}
+      BOX_STATUS_PROD_DEPLOY_LOCK={{ box_status_prod_deploy_lock }}
+    mode: "0644"
+  become: false
+  when:
+    - box_status_checkout_enabled | bool
+    - box_status_prod_host | length > 0

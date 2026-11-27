@@ -1,0 +1,294 @@
+
+a.app-drawer-quick-list-item {
+  text-decoration: none;
+}
+.review-mail {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: var(--sp-4);
+  min-height: 100dvh;
+  color: var(--fg);
+}
+.review-mail h1 {
+  margin: var(--sp-1) 0 var(--sp-3);
+  font-size: var(--fs-title);
+}
+.review-mail-back {
+  margin: 0;
+  font-size: var(--fs-body);
+}
+.review-mail-summary,
+.review-mail-card,
+.review-mail-form {
+  margin: var(--sp-3) 0;
+  padding: var(--sp-3);
+  border-radius: var(--radius);
+  background: var(--card);
+  box-shadow: var(--shadow-sm, none);
+}
+.review-mail-open {
+  margin: 0;
+  color: var(--muted);
+}
+.review-mail-expired {
+  margin: 0;
+  padding: var(--sp-1) var(--sp-2);
+  border-radius: var(--radius-sm);
+  background: var(--warn-bg);
+  color: var(--fg);
+}
+.review-mail-extend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  align-items: center;
+  margin: var(--sp-2) 0;
+}
+.review-mail-extend label {
+  display: flex;
+  gap: var(--sp-1);
+  align-items: center;
+}
+.review-mail-counts {
+  margin: var(--sp-2) 0;
+  padding-left: var(--sp-4);
+  columns: 2 220px;
+  font-size: var(--fs-body);
+}
+.review-mail-list {
+  margin: var(--sp-2) 0 0;
+  padding-left: 0;
+  list-style: none;
+  columns: 3 140px;
+  font-size: var(--fs-body);
+}
+.review-mail-done {
+  color: var(--accent);
+}
+.review-mail-muted,
+.review-mail-note {
+  color: var(--muted);
+  font-size: var(--fs-body);
+}
+.review-mail-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--sp-2);
+}
+.review-mail-meta {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 2px var(--sp-2);
+  margin: 0 0 var(--sp-2);
+  font-size: var(--fs-body);
+}
+.review-mail-meta dt {
+  font-weight: 600;
+}
+.review-mail-meta dd {
+  margin: 0;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.review-mail-body {
+  margin: var(--sp-2) 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: 0.9rem/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.review-mail-form fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.review-mail-form legend {
+  margin-bottom: var(--sp-2);
+  font-weight: 600;
+}
+.review-mail-form label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  font-size: var(--fs-body);
+}
+.review-mail-routes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(200px, 100%), 1fr));
+  gap: var(--sp-2);
+}
+.review-mail-routes label,
+.review-mail-form .review-mail-check {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--sp-2);
+}
+.review-mail-routes label {
+  padding: var(--sp-2) var(--sp-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+.review-mail input:not([type="checkbox"]):not([type="radio"]),
+.review-mail select,
+.review-mail textarea {
+  width: 100%;
+  padding: var(--sp-2) var(--sp-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--fg);
+  font: inherit;
+}
+.review-mail-extend input {
+  width: auto;
+  min-width: 0;
+}
+.review-mail textarea {
+  min-height: 130px;
+}
+.review-mail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.review-mail .review-mail-tabs {
+  display: flex;
+  gap: var(--sp-1);
+  margin: var(--sp-2) 0 var(--sp-3);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+}
+.review-mail .review-mail-tabs button { padding: var(--sp-2) var(--sp-3); border-bottom: 3px solid transparent; border-radius: 0; white-space: nowrap; }
+.review-mail .review-mail-tabs button[aria-selected="true"] {
+  border-bottom-color: var(--accent);
+  color: var(--fg);
+  font-weight: 600;
+}
+.review-mail .review-mail-tabs button:focus-visible,
+.classifier-prompt button:focus-visible {
+  outline: 2px solid var(--accent-focus);
+  outline-offset: 2px;
+}
+.review-mail-tab-heading {
+  margin: var(--sp-1) 0 var(--sp-1);
+  font-size: var(--fs-heading);
+}
+.review-mail-context {
+  margin: var(--sp-2) 0;
+  padding-left: var(--sp-4);
+  color: var(--muted);
+  font-size: var(--fs-body);
+}
+.review-mail-ask {
+  margin: var(--sp-3) 0;
+  padding: var(--sp-3);
+  border-radius: var(--radius);
+  background: var(--card);
+  box-shadow: var(--shadow-sm, none);
+}
+.review-mail-sentence {
+  margin: 0 0 var(--sp-2);
+  font-weight: 600;
+}
+.review-mail-ask-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.review-mail-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.review-mail-picker {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.review-mail-picker legend {
+  margin-bottom: var(--sp-2);
+  font-weight: 600;
+}
+
+.classifier-prompt {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 3000;
+  width: min(28rem, calc(100vw - 32px));
+  max-height: calc(100dvh - 5rem);
+  font-size: var(--fs-body);
+}
+.classifier-prompt p {
+  margin: 0 0 var(--sp-2);
+  overflow-wrap: anywhere;
+}
+.classifier-prompt .classifier-prompt-hint {
+  margin: var(--sp-1) 0 0;
+  color: var(--muted);
+  font-size: var(--fs-body);
+}
+.classifier-prompt-label {
+  color: var(--muted);
+}
+.classifier-prompt-actions,
+.classifier-prompt-pick,
+.classifier-prompt-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.classifier-prompt-comment { display: flex; flex-direction: column; gap: var(--sp-1); margin: var(--sp-2) 0; color: var(--muted); }
+.classifier-prompt-comment textarea { padding: var(--sp-1) var(--sp-2); border: 1px solid var(--field-edge, var(--border)); border-radius: var(--radius-sm); background: var(--surface); color: var(--fg); font: inherit; resize: vertical; }
+
+.classifier-prompt-pick { align-items: flex-end; }
+.classifier-prompt-pick label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  flex: 1 1 140px;
+}
+.classifier-prompt select {
+  padding: var(--sp-1) var(--sp-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--fg);
+  font: inherit;
+}
+.classifier-prompt-foot {
+  margin-top: var(--sp-2);
+  font-size: var(--fs-body);
+}
+
+.classifier-badge { display: inline-flex; align-items: center; justify-content: center; width: 1.35rem; height: 1.35rem; border-radius: 50%; border: 1.5px solid currentColor; font-size: var(--fs-micro); font-weight: 600; line-height: 1; cursor: help; }
+.classifier-badge--c { color: var(--success); }
+.classifier-badge--r { color: var(--error-fg); }
+.classifier-badge:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.classifier-prompt-email-link { display: inline-flex; align-items: center; gap: var(--sp-1); margin-top: 2px; }
+.classifier-prompt-email-link svg, .classifier-prompt-link svg { width: 14px; height: 14px; }
+.classifier-prompt-link { display: inline-flex; align-items: center; gap: var(--sp-1); }
+
+.classifier-prompt-foot { display: flex; flex-wrap: wrap; gap: var(--sp-1) var(--sp-2); align-items: center; }
+.classifier-prompt-foot .cf-btn { flex: 0 0 auto; height: 28px; padding: 0 var(--sp-3); justify-content: center; white-space: nowrap; display: inline-flex; align-items: center; gap: var(--sp-1); text-decoration: none; font-size: var(--fs-label); font-weight: 600; line-height: 1; }
+.classifier-prompt-foot .cf-btn:visited { color: var(--fg); }
+.classifier-prompt-foot .cf-btn svg { width: 14px; height: 14px; }
+.classifier-prompt-foot .cf-btn:focus-visible { outline: 2px solid var(--accent-focus); outline-offset: 2px; }

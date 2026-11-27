@@ -1,0 +1,275 @@
+{
+  "format": "caseforge-portal-answers/2",
+  "key_id": "lab-1",
+  "signature": "bBK6QkpuJeeAKMSCvOFqs1pKVqTONtNtrhr8vUR38n3NumNfJGuuSePeuc3oF2L2m2xwm3TWmXppeBGik35QAg",
+  "body": {
+    "client": {
+      "reference": "SYNTHETIC-001",
+      "surname": "Testperson"
+    },
+    "contains_c8": true,
+    "expires": "2099-01-01T00:00:00Z",
+    "format": "caseforge-portal-answers/2",
+    "issued": "2026-11-11T00:00:00Z",
+    "matter_id": "0",
+    "page_must_show": "",
+    "pages": {
+      "/steps/applicant/privacy_known/:id": [
+        {
+          "name": "steps_applicant_privacy_known_form[privacy_known]",
+          "type": "radio",
+          "value": "no"
+        }
+      ],
+      "/steps/applicant/refuge/:id": [
+        {
+          "name": "steps_applicant_refuge_form[refuge]",
+          "type": "radio",
+          "value": "no"
+        }
+      ],
+      "/steps/applicant/privacy_preferences/:id": [
+        {
+          "name": "steps_applicant_privacy_preferences_form[are_contact_details_private]",
+          "type": "radio",
+          "value": "yes"
+        },
+        {
+          "name": "steps_applicant_privacy_preferences_form[contact_details_private]",
+          "type": "checkbox",
+          "value": [
+            "address",
+            "phone_number"
+          ],
+          "conditional": true
+        }
+      ],
+      "/steps/applicant/personal_details/:id": [
+        {
+          "name": "steps_applicant_personal_details_form[has_previous_name]",
+          "type": "radio",
+          "value": "no"
+        },
+        {
+          "name": "steps_applicant_personal_details_form[gender]",
+          "type": "radio",
+          "value": "female"
+        },
+        {
+          "name": "steps_applicant_personal_details_form[dob]",
+          "type": "date",
+          "value": "1990-02-03"
+        },
+        {
+          "name": "steps_applicant_personal_details_form[birthplace]",
+          "type": "text",
+          "value": "Testtown"
+        }
+      ],
+      "/steps/applicant/contact_details/:id": [
+        {
+          "name": "steps_applicant_contact_details_form[email_provided]",
+          "type": "radio",
+          "value": "yes"
+        },
+        {
+          "name": "steps_applicant_contact_details_form[email]",
+          "type": "text",
+          "value": "tester@example.invalid",
+          "conditional": true
+        },
+        {
+          "name": "steps_applicant_contact_details_form[phone_number_provided]",
+          "type": "radio",
+          "value": "yes"
+        },
+        {
+          "name": "steps_applicant_contact_details_form[phone_number]",
+          "type": "text",
+          "value": "07000 000000",
+          "conditional": true
+        },
+        {
+          "name": "steps_applicant_contact_details_form[voicemail_consent]",
+          "type": "radio",
+          "value": "no",
+          "conditional": true
+        }
+      ],
+      "/steps/applicant/address_details/:id": [
+        {
+          "name": "steps_applicant_address_details_form[address_line_1]",
+          "type": "text",
+          "value": "1 Test Road"
+        },
+        {
+          "name": "steps_applicant_address_details_form[address_line_2]",
+          "type": "text",
+          "value": "Testville"
+        },
+        {
+          "name": "steps_applicant_address_details_form[town]",
+          "type": "text",
+          "value": "Testtown"
+        },
+        {
+          "name": "steps_applicant_address_details_form[country]",
+          "type": "text",
+          "value": "United Kingdom"
+        },
+        {
+          "name": "steps_applicant_address_details_form[postcode]",
+          "type": "text",
+          "value": "ZZ99 1ZZ"
+        },
+        {
+          "name": "steps_applicant_address_details_form[residence_requirement_met]",
+          "type": "radio",
+          "value": "yes"
+        }
+      ],
+      "/steps/safety_questions/substance_abuse": [
+        {
+          "name": "steps_safety_questions_substance_abuse_form[substance_abuse]",
+          "type": "radio",
+          "value": "yes"
+        },
+        {
+          "name": "steps_safety_questions_substance_abuse_form[substance_abuse_details]",
+          "type": "textarea",
+          "value": "Synthetic detail about drinking at home.\nSecond line.",
+          "conditional": true
+        }
+      ],
+      "/steps/abduction/passport_details": [
+        {
+          "name": "steps_abduction_passport_details_form[children_multiple_passports]",
+          "type": "radio",
+          "value": "no"
+        },
+        {
+          "name": "steps_abduction_passport_details_form[passport_possession]",
+          "type": "checkbox",
+          "value": [
+            "mother",
+            "other"
+          ]
+        },
+        {
+          "name": "steps_abduction_passport_details_form[passport_possession_other_details]",
+          "type": "textarea",
+          "value": "Held by a relative (synthetic).",
+          "conditional": true
+        }
+      ],
+      "/steps/abuse_concerns/details/children/sexual": [
+        {
+          "name": "steps_abuse_concerns_details_form[behaviour_description]",
+          "type": "textarea",
+          "value": "Synthetic description of the behaviour."
+        },
+        {
+          "name": "steps_abuse_concerns_details_form[behaviour_start]",
+          "type": "text",
+          "value": "Spring 2024"
+        },
+        {
+          "name": "steps_abuse_concerns_details_form[behaviour_ongoing]",
+          "type": "radio",
+          "value": "no"
+        },
+        {
+          "name": "steps_abuse_concerns_details_form[behaviour_stop]",
+          "type": "text",
+          "value": "Summer 2025",
+          "conditional": true
+        },
+        {
+          "name": "steps_abuse_concerns_details_form[asked_for_help]",
+          "type": "radio",
+          "value": "yes"
+        },
+        {
+          "name": "steps_abuse_concerns_details_form[help_party]",
+          "type": "text",
+          "value": "The school (synthetic)",
+          "conditional": true
+        },
+        {
+          "name": "steps_abuse_concerns_details_form[help_provided]",
+          "type": "radio",
+          "value": "yes",
+          "conditional": true
+        },
+        {
+          "name": "steps_abuse_concerns_details_form[help_description]",
+          "type": "textarea",
+          "value": "A meeting was held (synthetic).",
+          "conditional": true
+        }
+      ],
+      "/steps/court_orders/details": [
+        {
+          "name": "steps_court_orders_details_form[non_molestation]",
+          "type": "radio",
+          "value": "yes"
+        },
+        {
+          "name": "steps_court_orders_details_form[non_molestation_case_number]",
+          "type": "text",
+          "value": "TT25F00000",
+          "conditional": true
+        },
+        {
+          "name": "steps_court_orders_details_form[non_molestation_issue_date]",
+          "type": "date",
+          "value": "2025-03-04",
+          "conditional": true
+        },
+        {
+          "name": "steps_court_orders_details_form[non_molestation_length]",
+          "type": "text",
+          "value": "12 months",
+          "conditional": true
+        },
+        {
+          "name": "steps_court_orders_details_form[non_molestation_is_current]",
+          "type": "radio",
+          "value": "yes",
+          "conditional": true
+        },
+        {
+          "name": "steps_court_orders_details_form[non_molestation_court_name]",
+          "type": "text",
+          "value": "Testtown Family Court",
+          "conditional": true
+        },
+        {
+          "name": "steps_court_orders_details_form[occupation]",
+          "type": "radio",
+          "value": "no"
+        },
+        {
+          "name": "steps_court_orders_details_form[forced_marriage_protection]",
+          "type": "radio",
+          "value": "no"
+        },
+        {
+          "name": "steps_court_orders_details_form[restraining]",
+          "type": "radio",
+          "value": "no"
+        },
+        {
+          "name": "steps_court_orders_details_form[injunctive]",
+          "type": "radio",
+          "value": "no"
+        },
+        {
+          "name": "steps_court_orders_details_form[undertaking]",
+          "type": "radio",
+          "value": "no"
+        }
+      ]
+    }
+  }
+}

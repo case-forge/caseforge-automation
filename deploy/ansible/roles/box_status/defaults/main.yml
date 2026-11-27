@@ -1,0 +1,10 @@
+---
+box_status_link: "{{ checkout_owner_home }}/box-status"
+box_status_source: "{{ repo_checkout_dir }}/tools/box_status"
+box_status_env_dir: "{{ checkout_owner_home }}/.config/box-status"
+
+box_status_checkout_enabled: false
+
+box_status_prod_host: "{{ lookup('env', 'BOX_STATUS_PROD_HOST') }}"
+box_status_prod_repo: "{{ lookup('env', 'BOX_STATUS_PROD_REPO') }}"
+box_status_prod_deploy_lock: "{{ lookup('env', 'BOX_STATUS_PROD_DEPLOY_LOCK') }}"

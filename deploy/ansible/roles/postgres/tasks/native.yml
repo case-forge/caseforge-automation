@@ -1,0 +1,216 @@
+---
+
+- name: Make sure /etc/postgresql-common exists before the package does
+  ansible.builtin.file:
+    path: /etc/postgresql-common
+    state: directory
+    mode: "0755"
+
+- name: Stop the package creating a default cluster on the unencrypted root disk
+  ansible.builtin.copy:
+    dest: /etc/postgresql-common/createcluster.conf
+    content: |
+      create_main_cluster = false
+    mode: "0644"
+
+- name: Install postgresql-{{ postgres_native_version }}
+  ansible.builtin.apt:
+    name:
+      - "postgresql-{{ postgres_native_version }}"
+      - "postgresql-client-{{ postgres_native_version }}"
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: List the clusters this box already has
+  ansible.builtin.command: pg_lsclusters --no-header
+  register: postgres_native_clusters
+  changed_when: false
+  check_mode: false
+
+- name: Refuse to carry on if a different cluster already uses this name
+  ansible.builtin.assert:
+    that: >-
+      (postgres_native_clusters.stdout_lines
+        | select('match', '^' ~ postgres_native_version ~ '\s+' ~ postgres_native_cluster ~ '\s')
+        | reject('search', postgres_host_data_path)
+        | list | length) == 0
+    fail_msg: >-
+      A {{ postgres_native_version }}/{{ postgres_native_cluster }} cluster already exists with a data
+      directory other than {{ postgres_host_data_path }}. This role will not drop or move it:
+      look at `pg_lsclusters` and decide by hand.
+
+- name: Ensure the data directory exists on the encrypted volume, owned by the postgres user
+  ansible.builtin.file:
+    path: "{{ postgres_host_data_path }}"
+    state: directory
+    owner: postgres
+    group: postgres
+    mode: "0700"
+
+- name: Install acl, to let the postgres user reach its data directory
+  ansible.builtin.apt:
+    name: acl
+    state: present
+
+- name: Read the mount root's ACL
+  ansible.builtin.command: getfacl -p {{ luks_data_volume_mount_path }}
+  register: postgres_native_acl_before
+  changed_when: false
+  check_mode: false
+  failed_when: false
+
+- name: Let the postgres user traverse the encrypted mount root, and nothing more
+  ansible.builtin.command: setfacl -m u:postgres:--x {{ luks_data_volume_mount_path }}
+  register: postgres_native_traverse_acl
+  changed_when: "'user:postgres:--x' not in (postgres_native_acl_before.stdout | default(''))"
+
+- name: Create the cluster on the encrypted volume
+  ansible.builtin.command:
+    argv:
+      - pg_createcluster
+      - "{{ postgres_native_version }}"
+      - "{{ postgres_native_cluster }}"
+      - -d
+      - "{{ postgres_host_data_path }}"
+      - -p
+      - "{{ postgres_port }}"
+      - "--locale={{ postgres_native_locale }}"
+      - --start-conf=auto
+      - --
+      - --auth-local=peer
+      - --auth-host=reject
+    creates: "{{ postgres_host_data_path }}/PG_VERSION"
+
+- name: Make sure the cluster has a conf.d directory
+  ansible.builtin.file:
+    path: "/etc/postgresql/{{ postgres_native_version }}/{{ postgres_native_cluster }}/conf.d"
+    state: directory
+    owner: postgres
+    group: postgres
+    mode: "0755"
+
+- name: Make the cluster read conf.d
+  ansible.builtin.lineinfile:
+    path: "/etc/postgresql/{{ postgres_native_version }}/{{ postgres_native_cluster }}/postgresql.conf"
+    regexp: "^#?include_dir\\s*="
+    line: "include_dir = 'conf.d'"
+  notify: Restart native postgres
+
+- name: Render the listen address and password settings
+  ansible.builtin.template:
+    src: 90-caseforge.conf.j2
+    dest: "/etc/postgresql/{{ postgres_native_version }}/{{ postgres_native_cluster }}/conf.d/90-caseforge.conf"
+    owner: postgres
+    group: postgres
+    mode: "0644"
+  notify: Restart native postgres
+
+- name: Let postgres bind the tailnet address before the interface has it
+  ansible.posix.sysctl:
+    name: net.ipv4.ip_nonlocal_bind
+    value: "1"
+    sysctl_file: /etc/sysctl.d/60-caseforge-postgres-bind.conf
+    state: present
+    reload: true
+  when: postgres_tailnet_ip | default('') | length > 0
+
+- name: Make sure the cluster unit has a drop-in directory
+  ansible.builtin.file:
+    path: "/etc/systemd/system/{{ postgres_native_service }}.service.d"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Start the cluster after tailscaled and wait for the tailnet address itself
+  ansible.builtin.copy:
+    dest: "/etc/systemd/system/{{ postgres_native_service }}.service.d/after-tailscale.conf"
+    content: |
+      [Unit]
+      After=tailscaled.service
+      Wants=tailscaled.service
+      {% if postgres_tailnet_ip | default('') %}
+
+      [Service]
+      ExecStartPre=/bin/sh -c 'i=0; while [ $i -lt 90 ]; do ip -4 -o addr show | grep -q " {{ postgres_tailnet_ip }}/" && exit 0; i=$((i+1)); sleep 1; done; exit 0'
+      {% endif %}
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd for postgres
+
+- name: Render pg_hba.conf
+  ansible.builtin.template:
+    src: pg_hba.conf.j2
+    dest: "/etc/postgresql/{{ postgres_native_version }}/{{ postgres_native_cluster }}/pg_hba.conf"
+    owner: postgres
+    group: postgres
+    mode: "0640"
+  notify: Reload native postgres
+
+- name: Enable and start the cluster
+  ansible.builtin.systemd:
+    name: "{{ postgres_native_service }}"
+    enabled: true
+    state: started
+
+- name: Apply pending cluster restarts before waiting on the port
+  ansible.builtin.meta: flush_handlers
+
+- name: Wait for postgres to accept connections on loopback
+  ansible.builtin.command: pg_isready -h 127.0.0.1 -p {{ postgres_port }}
+  register: postgres_native_ready
+  changed_when: false
+  check_mode: false
+  retries: 12
+  delay: 5
+  until: postgres_native_ready.rc == 0
+
+- name: Create the database role (superuser, as in the container variant) and set its password
+  ansible.builtin.command:
+    argv: [psql, -X, -v, ON_ERROR_STOP=1, -p, "{{ postgres_port }}", -f, "-"]
+    stdin: |
+      DO $$ BEGIN
+        IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '{{ postgres_db_user }}') THEN
+          CREATE ROLE {{ postgres_db_user }} SUPERUSER LOGIN;
+        END IF;
+      END $$;
+      ALTER ROLE {{ postgres_db_user }} PASSWORD '{{ postgres_db_password | replace("'", "''") }}';
+  become: true
+  become_user: postgres
+  changed_when: false
+  no_log: true
+
+- name: Check whether the database exists
+  ansible.builtin.command:
+    argv: [psql, -X, -p, "{{ postgres_port }}", -tAc, "SELECT 1 FROM pg_database WHERE datname = '{{ postgres_db_name }}'"]
+  become: true
+  become_user: postgres
+  register: postgres_native_db_exists
+  changed_when: false
+  check_mode: false
+
+- name: Create the database
+  ansible.builtin.command:
+    argv:
+      - psql
+      - -X
+      - -p
+      - "{{ postgres_port }}"
+      - -c
+      - >-
+        CREATE DATABASE {{ postgres_db_name }} OWNER {{ postgres_db_user }}
+        TEMPLATE template0 ENCODING 'UTF8' LOCALE '{{ postgres_native_locale }}'
+  become: true
+  become_user: postgres
+  changed_when: true
+  when: postgres_native_db_exists.stdout.strip() != '1'
+
+- name: "[caseforge] native postgres up"
+  ansible.builtin.debug:
+    msg: >-
+      [caseforge] native postgres {{ postgres_native_version }} ({{ postgres_native_service }}), data on
+      {{ postgres_host_data_path }} (LUKS-encrypted volume), bound to
+      127.0.0.1{{ (' + ' + postgres_tailnet_ip) if postgres_tailnet_ip else ' only (no tailnet IP found)' }}:{{ postgres_port }}.
+      Patched by unattended-upgrades (security pocket); a point-release upgrade restarts it briefly.

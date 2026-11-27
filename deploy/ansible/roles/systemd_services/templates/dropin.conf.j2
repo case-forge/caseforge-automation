@@ -1,0 +1,4 @@
+[Service]
+{% for key, value in item.environment | dictsort %}
+Environment={{ key }}={{ value }}
+{% endfor %}

@@ -1,0 +1,31 @@
+LocalSocket /var/run/clamav/clamd.ctl
+FixStaleSocket true
+LocalSocketGroup clamav
+LocalSocketMode 666
+User clamav
+MaxThreads 2
+MaxConnectionQueueLength 15
+ReadTimeout 180
+StreamMaxLength {{ clamav_max_file_size }}
+MaxFileSize {{ clamav_max_file_size }}
+MaxScanSize 1G
+ScanArchive true
+ScanMail true
+ScanPDF true
+ScanOLE2 true
+ArchiveBlockEncrypted false
+MaxDirectoryRecursion 15
+FollowDirectorySymlinks false
+FollowFileSymlinks false
+ConcurrentDatabaseReload false
+SelfCheck 3600
+DatabaseDirectory /var/lib/clamav
+TemporaryDirectory /tmp
+PidFile /var/run/clamav/clamd.pid
+LogFile /var/log/clamav/clamav.log
+LogTime true
+LogFileMaxSize 5M
+LogRotate true
+LogSyslog false
+ExtendedDetectionInfo true
+Foreground false

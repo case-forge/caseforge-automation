@@ -1,0 +1,84 @@
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "caseforge-automation"
+license = "FSL-1.1-MIT"
+version = "0.1.0"
+description = "Casework administration and procedural support tooling for family-law firms"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+markers = [
+    "slow: shells out to a real subprocess, or does an in-process model cold build, and takes 10s+.",
+]
+
+[tool.setuptools]
+package-dir = { "" = "tools", "products" = "products" }
+py-modules = [
+    "actor_kind",
+    "app_settings",
+    "atomic_json",
+    "child_age",
+    "clientdb_sql",
+    "csv_safe",
+    "document_identity",
+    "document_ocr",
+    "email_pdf_label",
+    "env_bootstrap",
+    "env_config",
+    "env_names",
+    "field_shapes",
+    "firm_profile",
+    "flags_env",
+    "load_kv_secrets",
+    "london_time",
+    "mail_blocked_reasons",
+    "matter_chronology_extraction",
+    "matter_fact_extraction",
+    "matter_folder_closure",
+    "matter_incidents_extraction",
+    "matter_orders",
+    "model_backend",
+    "model_registry",
+    "name_extractor",
+    "ops_db",
+    "order_codes",
+    "order_type_tags",
+    "recipient_identity",
+    "robot_notices",
+    "run_agent",
+    "small_model_text",
+    "telemetry_sqlite",
+    "webhook_redaction",
+    "word_lists",
+    "zip_safe",
+]
+
+[tool.setuptools.packages.find]
+where = ["tools", "."]
+include = [
+    "billing*",
+    "calendar_finder*",
+    "caseforge_cli*",
+    "counsel*",
+    "documents*",
+    "agwu*",
+    "hearing_calendar*",
+    "model*",
+    "monitoring*",
+    "rag*",
+    "retrieval_engine*",
+    "scanned_docs*",
+    "sql*",
+    "todos*",
+    "startup*",
+    "usage*",
+    "vergil_chat*",
+    "vergil*",
+    "products",
+    "products.ikoro*",
+]
+exclude = ["*__pycache__*", "*.tests", "*.tests.*"]

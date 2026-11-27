@@ -1,0 +1,2 @@
+
+ALTER TABLE matter_parties ADD COLUMN IF NOT EXISTS aka_name TEXT NULL;

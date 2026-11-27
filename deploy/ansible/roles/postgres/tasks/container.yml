@@ -1,0 +1,47 @@
+---
+
+- name: Ensure the data subdirectory exists on the encrypted volume
+  ansible.builtin.file:
+    path: "{{ postgres_host_data_path }}"
+    state: directory
+    mode: "0700"
+    owner: "70"
+    group: "70"
+
+- name: Ensure the compose directory exists
+  ansible.builtin.file:
+    path: "{{ postgres_compose_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Render the postgres compose file
+  ansible.builtin.template:
+    src: compose.yml.j2
+    dest: "{{ postgres_compose_dir }}/compose.yml"
+    mode: "0600"
+  no_log: true
+
+- name: Bring postgres up
+  ansible.builtin.command:
+    cmd: docker compose up -d
+    chdir: "{{ postgres_compose_dir }}"
+  register: postgres_compose_up
+  changed_when: "'Started' in postgres_compose_up.stderr or 'Created' in postgres_compose_up.stderr"
+
+- name: Wait for postgres to report healthy
+  ansible.builtin.command:
+    cmd: docker inspect --format '{{ '{{.State.Health.Status}}' }}' {{ postgres_container_name }}
+  register: postgres_health
+  changed_when: false
+  check_mode: false
+  retries: 12
+  delay: 5
+  until: postgres_health.stdout is defined and postgres_health.stdout.strip() == "healthy"
+
+- name: "[caseforge] postgres up"
+  ansible.builtin.debug:
+    msg: >-
+      [caseforge] postgres {{ postgres_image }} running as
+      {{ postgres_container_name }}, data on
+      {{ postgres_host_data_path }} (LUKS-encrypted volume),
+      bound to 127.0.0.1{{ (' + ' + postgres_tailnet_ip) if postgres_tailnet_ip else ' only (no tailnet IP found)' }}:{{ postgres_port }}.

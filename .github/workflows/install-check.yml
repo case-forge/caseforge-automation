@@ -1,0 +1,25 @@
+name: Install check
+
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: install-check
+  cancel-in-progress: true
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      TZ: Europe/London
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install on this machine and check it runs
+        run: bash deploy/clean_room_check.sh

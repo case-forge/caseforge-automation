@@ -1,0 +1,6 @@
+---
+clamav_enabled: false
+
+clamav_memory_max: 2G
+
+clamav_max_file_size: 500M

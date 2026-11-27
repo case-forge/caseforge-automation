@@ -1,0 +1,33 @@
+
+:root {
+  --robot-fg: #00598a;
+  --robot-bg: rgba(0, 89, 138, 0.13);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --robot-fg: #8ec5ff;
+    --robot-bg: rgba(142, 197, 255, 0.16);
+  }
+}
+
+:root[data-theme="dark"] {
+  --robot-fg: #8ec5ff;
+  --robot-bg: rgba(142, 197, 255, 0.16);
+}
+
+.attention-button--robot[data-active="true"] { color: var(--robot-fg); }
+.attention-button--robot .attention-count { background: var(--robot-bg); color: var(--robot-fg); }
+.attention-item[data-kind="robot"] { background: var(--robot-bg); }
+
+.client-edits-flag-reason { color: var(--muted); font-size: var(--fs-label); }
+
+.an-form-kinds {
+  display: flex;
+  align-items: center;
+  max-width: 100%;
+  gap: var(--sp-2) var(--sp-2);
+  margin: 0;
+  padding: 0;
+  border: none;
+}

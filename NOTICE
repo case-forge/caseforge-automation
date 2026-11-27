@@ -1,0 +1,615 @@
+CASEFORGE AUTOMATION — THIRD-PARTY ATTRIBUTION NOTICES
+
+Copyright © 2026 CaseForge. Licensed under the Functional Source License 1.1,
+MIT Future License (FSL-1.1-MIT); see LICENSE.
+
+This file exists because the permissive licences below (MIT, BSD, Apache-2.0, PSFL,
+HPND) all require their copyright notice and licence text to travel with the software
+when it is conveyed.
+
+Each component remains governed by its own licence. Full licence texts are available
+from each project and in the installed distribution metadata
+(`python3 -m pip show -f <name>`).
+
+--------------------------------------------------------------------------------
+NO STRONG COPYLEFT
+--------------------------------------------------------------------------------
+
+CaseForge Automation deliberately contains no GPL or AGPL components: its dependency
+licence policy bans them as linked code.
+
+Removed for this reason:
+  extract-msg (GPL)  — replaced 2026-07-28 by olefile (BSD). Outlook .msg files are
+                       OLE compound documents; the MAPI property streams are now
+                       decoded directly in tools/rag/matter_content_extractor.py.
+
+--------------------------------------------------------------------------------
+WEAK / FILE-LEVEL COPYLEFT (MPL-2.0) — permitted
+--------------------------------------------------------------------------------
+
+MPL-2.0 is file-level: the obligation attaches to modified MPL files, not to the
+program that uses them. All are used unmodified, so no source-disclosure obligation
+falls on CaseForge Automation.
+
+  pikepdf   — Mozilla Public Licence 2.0.  https://github.com/pikepdf/pikepdf
+  certifi   — Mozilla Public Licence 2.0.  https://github.com/certifi/python-certifi
+  tqdm      — MPL-2.0 AND MIT (transitive, via huggingface_hub/fastembed).
+                                           https://github.com/tqdm/tqdm
+
+--------------------------------------------------------------------------------
+PERMISSIVE COMPONENTS
+--------------------------------------------------------------------------------
+
+Apache Licence 2.0
+  qdrant-client                 https://github.com/qdrant/qdrant-client
+  requests                      https://github.com/psf/requests
+  urllib3                       https://github.com/urllib3/urllib3
+  azure-identity                https://github.com/Azure/azure-sdk-for-python
+  azure-keyvault-secrets        https://github.com/Azure/azure-sdk-for-python
+  fastembed                     https://github.com/qdrant/fastembed -- local embedding
+                                models for the Qdrant index. Downloads model weights
+                                at first use; those are data, not linked code.
+
+LGPL-3.0 (dynamic linking only; no source obligation reaches this program)
+  psycopg2-binary               https://github.com/psycopg/psycopg2
+
+MIT Licence
+  openpyxl                      https://foss.heptapod.net/openpyxl/openpyxl
+  python-docx                   https://github.com/python-openxml/python-docx
+  pyodbc                        https://github.com/mkleehammer/pyodbc
+  PyYAML                        https://github.com/yaml/pyyaml
+  azure-storage-queue           https://github.com/Azure/azure-sdk-for-python
+  azure-storage-blob            https://github.com/Azure/azure-sdk-for-python
+  azure-data-tables             https://github.com/Azure/azure-sdk-for-python
+  tzdata                        https://github.com/python/tzdata
+  msal                          https://github.com/AzureAD/microsoft-authentication-library-for-python
+  pdfplumber                    https://github.com/jsvine/pdfplumber
+  pdfminer.six                  https://github.com/pdfminer/pdfminer.six
+  PyJWT                         https://github.com/jpadilla/pyjwt -- the hub's own
+                                Cloudflare Access JWT check before a test client is
+                                made (tools/vergil/access_identity.py). Already
+                                installed through msal (azure-identity); now named.
+  mcp (Model Context Protocol Python SDK)
+                                 https://github.com/modelcontextprotocol/python-sdk
+  jsonschema                    https://github.com/python-jsonschema/jsonschema -- firm
+                                profile validation (tools/firm_profile.py). Already
+                                installed through mcp; now named. Its own MIT
+                                dependencies: attrs, referencing, rpds-py,
+                                jsonschema-specifications.
+  rapidfuzz                     https://github.com/rapidfuzz/RapidFuzz
+  spacy                       https://github.com/explosion/spaCy
+  spacy-model (en_core_web_sm)  https://github.com/explosion/spacy-models
+  thinc                         https://github.com/explosion/thinc
+  fastapi                       https://github.com/fastapi/fastapi -- the hub API.
+  sentry-sdk                    https://github.com/getsentry/sentry-python -- error
+                                reporting to the self-hosted GlitchTip server.
+  pytest                        https://github.com/pytest-dev/pytest -- test runner,
+                                development only.
+  pytest-xdist                  https://github.com/pytest-dev/pytest-xdist -- parallel
+                                test runs, development only.
+  pytest-timeout                https://github.com/pytest-dev/pytest-timeout -- per-test
+                                time limit, development only.
+  py-spy                        https://github.com/benfred/py-spy -- stack dumps of a
+                                running Python process, diagnosis only.
+
+BSD Licences (2- and 3-clause)
+  olefile                       https://github.com/decalage2/olefile
+  pypdf                         https://github.com/py-pdf/pypdf
+  reportlab                     https://www.reportlab.com/
+  numpy                         https://github.com/numpy/numpy
+  Jinja2                        https://github.com/pallets/jinja
+  lxml                          https://github.com/lxml/lxml
+  striprtf                      https://github.com/joshy/striprtf
+  fuzzyfinder                   https://github.com/amjith/fuzzyfinder
+  blis                          https://github.com/explosion/cython-blis
+  uvicorn                       https://github.com/Kludex/uvicorn -- ASGI server for
+                                the hub API.
+  httpx                         https://github.com/encode/httpx
+
+Apache-2.0 (project licence)
+  MaterialDesign-SVG (tile icons, self-hosted instead of fetched live from
+  cdn.jsdelivr.net.
+  One of them, the `chat` bubble, is also copied to
+  products/caseforge-chat-web/app/icon.svg as that app's favicon — copied rather than
+  referenced across directories so the Next.js build stays self-contained, and
+  recoloured to near-black (#111318; the owner reversed the earlier accent
+  orange on 2026-08-20).
+  Five more — book-open-variant, chat, draw-pen, folder-zip, school — are
+  copied to products/caseforge-chat-web/public/icons/ for that app's app-drawer
+  menu, matching the per-app icons BundleTool already uses.
+  They carry no `fill`, so the drawer paints them via CSS mask-image plus
+  currentColor rather than as <img>, which is what lets them follow the
+  light/dark theme.)
+                                https://github.com/Pictogrammers/MaterialDesign-SVG
+  anthropic (Python SDK; direct calls to Anthropic's own API, with its own
+  dependencies httpx2, jiter and opentelemetry-api)
+                                https://github.com/anthropics/anthropic-sdk-python
+
+ISC Licence (icons)
+  Lucide (ISC; the interface icons of the client viewer and the chat app, as
+  SVG elements in each product's lib/lucideIconNodes.ts, generated from
+  lucide-static by tools/web/gen_lucide_icons.mjs)
+                                https://github.com/lucide-icons/lucide
+
+SIL Open Font Licence 1.1 (typeface)
+  Inter Tight (the default typeface of the client viewer, self-hosted as WOFF2 in
+  products/caseforge-crm/public/fonts/inter-tight/, with the licence text beside
+  the files as OFL.txt; Copyright 2022 The Inter Project Authors, from @fontsource/inter-tight 5.3.0)
+                                https://github.com/rsms/inter-tight
+
+Service logos (Settings > Links in the client viewer, static files in
+products/caseforge-crm/public/link-logos/, served from our own host only)
+  The marks remain their owners' trademarks and are used only to point at
+  each service's own site.
+  link-logos/anthropic.svg, claude.svg, cloudflare.svg, github.svg, openrouter.svg,
+  tailscale.svg, umami.svg
+    from Simple Icons 16.36.0 (CC0-1.0)  https://github.com/simple-icons/simple-icons
+  products/caseforge-crm/lib/outageLogos.ts (inlined path data for the
+  System health outage map: Microsoft and Azure marks from Simple Icons 9.0.0,
+  the rest from 13.0.0; CC0-1.0)
+  link-logos/cloud.svg, grid.svg, shield.svg
+    generic icons from lucide-static 0.544.0 (ISC), for services whose own
+    marks no licence allows us to ship    https://github.com/lucide-icons/lucide
+  link-logos/healthchecks.svg
+    the Healthchecks favicon.svg (BSD-3-Clause, (c) 2015 Pēteris Caune and
+    other contributors)                  https://github.com/healthchecks/healthchecks
+  link-logos/glitchtip.svg
+    glitchtip-logo-collasped.svg from the GlitchTip frontend (MIT, (c) 2020
+    GlitchTip)                           https://gitlab.com/glitchtip/glitchtip-frontend
+
+HPND / PIL Licence
+  Pillow                        https://github.com/python-pillow/Pillow
+
+Python Software Foundation Licence
+  defusedxml                    https://github.com/tiran/defusedxml
+  CPython standard library      https://github.com/python/cpython
+
+Dual (Apache-2.0 / BSD-3-Clause)
+  python-dateutil               https://github.com/dateutil/dateutil
+  pypdfium2 (pdfplumber's PDF renderer, wraps Google's BSD-3-Clause PDFium)
+                                 https://github.com/pypdfium2-team/pypdfium2
+
+MIT (Claude Code skill, not a package)
+  skills/arewedone/SKILL.md     https://github.com/pizzayap/pza-skills
+                                (skills/arewedone/SKILL.md there) -- Copyright
+                                (c) 2026 pizzayap. Copied verbatim 2026-09-18,
+                                re-pulled fresh the same day after finding an
+                                older snapshot (then named arewedone-plain,
+                                renamed upstream 2026-09-08) on a different box.
+  skills/areyousure/SKILL.md    https://github.com/pizzayap/pza-skills
+                                (skills/areyousure/SKILL.md there) -- Copyright
+                                (c) 2026 pizzayap. Copied verbatim 2026-09-18.
+  skills/agents-md-audit/SKILL.md
+                                https://github.com/pizzayap/pza-skills
+                                (skills/agents-md-audit/SKILL.md there) --
+                                Copyright (c) 2026 pizzayap. Copied verbatim
+                                2026-09-18. Read-only audit, no write path.
+
+--------------------------------------------------------------------------------
+TRANSITIVE PYTHON DEPENDENCIES (installed by requirements.txt, not named in it)
+--------------------------------------------------------------------------------
+
+Resolved with `pip install --dry-run --report` over requirements.txt (licence read
+from each distribution's metadata, 2026-10-18). All permissive; the one MPL-2.0
+package (tqdm) is listed under weak copyleft above.
+
+MIT Licence (MIT-0 for cffi; MIT-CMU is Pillow, listed above)
+  annotated-doc                 https://github.com/fastapi/annotated-doc
+  annotated-types               https://github.com/annotated-types/annotated-types
+  anyio                         https://github.com/agronholm/anyio
+  azure-core                    https://github.com/Azure/azure-sdk-for-python
+  catalogue                     https://github.com/explosion/catalogue
+  cffi                          https://github.com/python-cffi/cffi
+  charset-normalizer            https://github.com/jawah/charset_normalizer
+  cloudpathlib                  https://github.com/drivendataorg/cloudpathlib
+  confection                    https://github.com/explosion/confection
+  cymem                         https://github.com/explosion/cymem
+  et_xmlfile                    https://foss.heptapod.net/openpyxl/et_xmlfile
+  execnet                       https://github.com/pytest-dev/execnet
+  filelock                      https://github.com/tox-dev/filelock
+  h11                           https://github.com/python-hyper/h11
+  h2                            https://github.com/python-hyper/h2
+  hpack                         https://github.com/python-hyper/hpack
+  hyperframe                    https://github.com/python-hyper/hyperframe
+  iniconfig                     https://github.com/pytest-dev/iniconfig
+  loguru                        https://github.com/Delgan/loguru
+  markdown-it-py                https://github.com/executablebooks/markdown-it-py
+  mcp-types                     https://github.com/modelcontextprotocol/python-sdk
+  mdurl                         https://github.com/executablebooks/mdurl
+  mmh3                          https://github.com/hajimes/mmh3
+  msal-extensions               https://github.com/AzureAD/microsoft-authentication-extensions-for-python
+  murmurhash                    https://github.com/explosion/murmurhash
+  onnxruntime                   https://github.com/microsoft/onnxruntime
+  pluggy                        https://github.com/pytest-dev/pluggy
+  preshed                       https://github.com/explosion/preshed
+  py_rust_stemmers              https://github.com/qdrant/py-rust-stemmers -- the
+                                wheel carries no licence metadata; MIT per the
+                                repository's LICENSE file.
+  pydantic                      https://github.com/pydantic/pydantic
+  pydantic_core                 https://github.com/pydantic/pydantic-core
+  pyee                          https://github.com/jfhbrook/pyee
+  rich                          https://github.com/Textualize/rich
+  setuptools                    https://github.com/pypa/setuptools
+  smart_open                    https://github.com/piskvorky/smart_open
+  spacy-legacy                  https://github.com/explosion/spacy-legacy
+  spacy-loggers                 https://github.com/explosion/spacy-loggers
+  srsly                         https://github.com/explosion/srsly
+  truststore                    https://github.com/sethmlarson/truststore
+  typer                         https://github.com/fastapi/typer
+  typing-inspection             https://github.com/pydantic/typing-inspection
+  wasabi                        https://github.com/explosion/wasabi
+  weasel                        https://github.com/explosion/weasel
+
+MIT AND PSF-2.0
+  greenlet                      https://github.com/python-greenlet/greenlet
+
+BSD Licences (2- and 3-clause)
+  click                         https://github.com/pallets/click
+  fsspec                        https://github.com/fsspec/filesystem_spec
+  httpcore                      https://github.com/encode/httpcore
+  httpcore2                     https://github.com/pydantic/httpx2
+  httpx2                        https://github.com/pydantic/httpx2
+  idna                          https://github.com/kjd/idna
+  isodate                       https://github.com/gweis/isodate
+  MarkupSafe                    https://github.com/pallets/markupsafe
+  portalocker                   https://github.com/wolph/portalocker
+  protobuf                      https://github.com/protocolbuffers/protobuf
+  pycparser                     https://github.com/eliben/pycparser
+  Pygments                      https://github.com/pygments/pygments
+  sse-starlette                 https://github.com/sysid/sse-starlette
+  starlette                     https://github.com/Kludex/starlette
+  wrapt                         https://github.com/GrahamDumpleton/wrapt
+
+Apache Licence 2.0
+  flatbuffers                   https://github.com/google/flatbuffers
+  grpcio                        https://github.com/grpc/grpc
+  hf-xet                        https://github.com/huggingface/xet-core
+  huggingface_hub               https://github.com/huggingface/huggingface_hub
+  opentelemetry-api             https://github.com/open-telemetry/opentelemetry-python
+  python-multipart              https://github.com/Kludex/python-multipart
+  tokenizers                    https://github.com/huggingface/tokenizers
+
+Dual (Apache-2.0 OR BSD)
+  cryptography                  https://github.com/pyca/cryptography
+  packaging                     https://github.com/pypa/packaging
+
+ISC Licence
+  shellingham                   https://github.com/sarugaku/shellingham
+
+Python Software Foundation Licence
+  typing_extensions             https://github.com/python/typing_extensions
+
+--------------------------------------------------------------------------------
+NPM DEPENDENCIES — products/caseforge-chat-web/ (Task 5, 2026-08-12)
+--------------------------------------------------------------------------------
+
+The assistant-ui scaffold is the first Node/npm component in this repo, so its direct
+dependencies (package.json `dependencies` and `devDependencies`) are listed separately
+here rather than folded into the Python lists above, for the same reason: no GPL/AGPL,
+per the dependency licence policy. All are permissive; none reaches CaseForge Automation source
+with any obligation.
+
+MIT Licence
+  next                          https://github.com/vercel/next.js
+  react                         https://github.com/facebook/react
+  react-dom                     https://github.com/facebook/react
+  jose                          https://github.com/panva/jose -- Cloudflare Access JWT
+                                verification (Task 15, 2026-08-12): RS256 signature
+                                against the team's JWKS, aud/iss/exp/nbf claim checks,
+                                for `lib/accessIdentity.ts`. Pinned exact at 6.2.8. Zero
+                                runtime dependencies of its own (verified via `npm view
+                                jose dependencies`), so it introduces no transitive
+                                licence surface.
+  @assistant-ui/react           https://github.com/assistant-ui/assistant-ui
+  @assistant-ui/core            https://github.com/assistant-ui/assistant-ui (chat parity
+                                wave, 2026-08-12) -- promoted from transitive to direct.
+                                Not a new package: @assistant-ui/core@0.3.12 was already
+                                resolved and installed by @assistant-ui/react@0.15.13
+                                before this change (same lockfile, same node_modules,
+                                zero new bytes on disk); it is now also a direct
+                                dependency because new code imports
+                                `createLocalStorageAdapter`/`createSimpleTitleAdapter`/
+                                `AsyncStorageLike` from its `@assistant-ui/core/react`
+                                subpath (thread persistence + auto-title,
+                                `components/ThreadSidebar.tsx`) -- @assistant-ui/react's
+                                own top-level export does not re-export those three.
+                                Same MIT licence, same repo/vendor as @assistant-ui/react
+                                and @assistant-ui/react-markdown above.
+  @assistant-ui/react-markdown  https://github.com/assistant-ui/assistant-ui (frontend
+                                wave, 2026-08-12) -- renders assistant messages as
+                                markdown via MarkdownTextPrimitive (components/Chat.tsx).
+                                Pulls a large transitive tree (react-markdown and the
+                                unified/remark/rehype/micromark/mdast/hast CommonMark
+                                pipeline underneath it, ~80 packages). Every one of them
+                                was checked before installing, per the dependency licence
+                                gate: all MIT except @ungap/structured-clone, which is
+                                ISC -- also short-form-permissive, notice-only, no
+                                copyleft obligation, so treated the same as MIT/BSD here.
+                                remark-gfm (GitHub-flavoured markdown: tables, task
+                                lists, strikethrough) was deliberately left uninstalled --
+                                the task only asked for markdown rendering, and it was
+                                not needed for plain CommonMark output.
+  chrono-node                   https://github.com/wanasit/chrono -- reads dates and times
+                                out of free text ("Friday", "30.09.2026", "1:30pm") in
+                                products/caseforge-crm, so the attendance note box
+                                can offer to add a hearing (`lib/hearingDetection.ts`).
+                                Pinned exact at 2.10.1. Pure parsing: no network access,
+                                no telemetry, no install scripts, no runtime dependencies
+                                of its own (verified in its package.json). Not open-core.
+  react-markdown                https://github.com/remarkjs/react-markdown -- also a direct
+                                dependency of caseforge-client-viewer (products/caseforge-crm),
+                                pinned to the 10.1.0 already vetted above, for the Vergil tab's
+                                markdown answers. Same MIT licence and same transitive tree
+                                as checked for @assistant-ui/react-markdown; remark-gfm again
+                                left uninstalled.
+  @fullcalendar/core            https://github.com/fullcalendar/fullcalendar -- the
+  @fullcalendar/react           calendar view in products/caseforge-client-viewer. Only the
+  @fullcalendar/daygrid         MIT-licensed standard packages, pinned exact at 6.1.21
+  @fullcalendar/timegrid        (each package.json `license` checked); the premium
+  @fullcalendar/list            Scheduler plugins are not installed. Its one runtime
+  @fullcalendar/interaction     dependency is preact (MIT, https://github.com/preactjs/preact).
+  preact                        https://github.com/preactjs/preact -- transitive, via
+                                @fullcalendar/core.
+  @dnd-kit/core                 https://github.com/clauderic/dnd-kit -- drag and drop for the
+  @dnd-kit/utilities            Case flow board in products/caseforge-client-viewer. MIT, pinned exact
+  @dnd-kit/accessibility        at 6.3.1 (core) and 3.2.2 (utilities); accessibility 3.1.1 and
+  tslib                         tslib (0BSD, https://github.com/microsoft/tslib) come with core.
+                                All from one repository. Checked before adopting: no paid tier
+                                or gated feature (one MIT repository); it never reaches client
+                                data (a drop calls our own pipeline run route, behind its
+                                confirmation); no install scripts, no network calls (searched
+                                its built files for fetch, XMLHttpRequest, sendBeacon,
+                                WebSocket, EventSource); the name is not used as branding; a
+                                stable release since Dec 2024 with no licence change in its
+                                history. Installed in the lockfile with --ignore-scripts.
+  cmdk                          https://github.com/pacocoursey/cmdk -- the quick switcher
+  @radix-ui/react-dialog        (Ctrl+K / Cmd+K) in products/caseforge-client-viewer. MIT, pinned
+  @radix-ui/primitive           exact at 1.1.1. It brings 24 packages, all MIT: 16 Radix
+  @radix-ui/react-* (14 more)   primitives (https://github.com/radix-ui/primitives; dialog
+  react-remove-scroll           1.3.1 and its dismissable-layer, focus-scope, focus-guards,
+  react-remove-scroll-bar       portal, presence, primitive, slot, id, context, compose-refs
+  react-style-singleton         and use-* hooks), react-remove-scroll and its helpers
+  use-callback-ref              (https://github.com/theKashey: react-remove-scroll-bar,
+  use-sidecar                   react-style-singleton, use-callback-ref, use-sidecar,
+  aria-hidden                   aria-hidden), get-nonce and detect-node-es.
+  get-nonce
+  detect-node-es                About 49 kB minified, 16.5 kB gzipped with React left out
+                                (rolldown); the page fetches it only the first time the
+                                shortcut is pressed. Checked before adopting: no paid tier or
+                                gated feature (one MIT repository, as are Radix's); it never
+                                reaches client data (the switcher searches through our own
+                                /api/clients/search route, so the exposure audit and
+                                Remote-User apply, and filtering is off); no install scripts
+                                (none flagged in the lockfile), no network calls (searched
+                                every package's built files for fetch, XMLHttpRequest,
+                                sendBeacon, WebSocket, EventSource); the name is not used as
+                                branding; MIT since its first release in 2022, with no licence
+                                change in its history. Installed with --ignore-scripts.
+  vitest                        https://github.com/vitest-dev/vitest
+  eslint                        https://github.com/eslint/eslint -- devDependency of
+  eslint-config-next            https://github.com/vercel/next.js (packages/eslint-config-next)
+                                caseforge-chat-web and caseforge-client-viewer; runs
+                                `npm run lint` over a flat config (eslint.config.mjs).
+                                eslint pinned exact at 9.39.5 (the plugins in
+                                eslint-config-next declare eslint ^9 as their ceiling),
+                                eslint-config-next pinned exact at 16.3.0 to match next.
+                                Development tooling only: not bundled into any build.
+                                Its transitive tree (~300 packages: typescript-eslint,
+                                eslint-plugin-react/-react-hooks/-import/-jsx-a11y,
+                                @next/eslint-plugin-next and their dependencies) was
+                                checked from the lockfiles: MIT, ISC, Apache-2.0 and
+                                BSD-2/3-Clause, plus the four listed under their own
+                                headings below. No GPL/AGPL.
+  @types/node                   https://github.com/DefinitelyTyped/DefinitelyTyped
+  @types/react                  https://github.com/DefinitelyTyped/DefinitelyTyped
+  @types/react-dom              https://github.com/DefinitelyTyped/DefinitelyTyped
+  @sentry/nextjs                https://github.com/getsentry/sentry-javascript -- error
+                                reporting from caseforge-chat-web and caseforge-client-viewer to the
+                                self-hosted GlitchTip server. Pulls in @sentry/cli
+                                (FSL-1.1-MIT, listed under its own heading below).
+  fuzzysort                     https://github.com/farzher/fuzzysort -- client search
+                                in products/caseforge-client-viewer. No dependencies.
+  type-fest                     https://github.com/sindresorhus/type-fest -- MIT OR
+                                CC0-1.0; transitive, via stacktrace-parser (Next.js).
+  @angular/core,                https://github.com/angular/angular -- devDependencies of
+  @angular/common,              products/portal-fill-extension, pinned exact at 20.3.31.
+  @angular/compiler,
+  @angular/forms,
+  @angular/platform-browser,
+  zone.js                       They build the local mock page the prototype is tested
+                                against and nothing else: the extension itself contains
+                                no third-party code. zone.js 0.15.1 (same repository).
+  esbuild                       https://github.com/evanw/esbuild -- bundles that mock
+                                page; pinned exact at 0.25.10. Development tooling only.
+  hmcts/prl-ccd-definitions     https://github.com/hmcts/prl-ccd-definitions -- field
+                                identifiers, page order and show conditions for two pages
+                                of one event, copied into
+                                products/portal-fill-extension/mock/src/pages.json at
+                                commit c5f76cf811. Reference data for the mock only.
+  hmcts/ccd-case-ui-toolkit     https://github.com/hmcts/ccd-case-ui-toolkit -- four
+                                field templates read at commit 242630c334 and rebuilt by
+                                hand in the mock; no file copied.
+
+Apache Licence 2.0
+  typescript                    https://github.com/microsoft/TypeScript
+  playwright                    https://github.com/microsoft/playwright -- test browser
+                                driver for products/portal-fill-extension, pinned exact
+                                at 1.63.0. Development tooling only.
+  rxjs                          https://github.com/ReactiveX/rxjs -- required by Angular
+                                in the same mock; pinned exact at 7.8.2.
+
+ISC Licence (permissive, notice-only -- treated the same as MIT/BSD here)
+  @ungap/structured-clone       https://github.com/ungap/structured-clone -- transitive,
+                                pulled in by react-markdown's hast/unist tooling.
+
+Other permissive licences (transitive, lint tooling only, via eslint/eslint-config-next)
+  argparse                      https://github.com/nodeca/argparse -- Python-2.0 (PSF
+                                licence, permissive, notice-only).
+  language-subtag-registry      https://github.com/mattcg/language-subtag-registry --
+                                CC0-1.0 (public-domain dedication).
+  minimatch                     https://github.com/isaacs/minimatch -- BlueOak-1.0.0
+                                (permissive, notice-only).
+
+Other permissive licences (transitive, in the app builds)
+  glob                          https://github.com/isaacs/node-glob -- BlueOak-1.0.0
+  minipass                      https://github.com/isaacs/minipass -- BlueOak-1.0.0
+  path-scurry                   https://github.com/isaacs/path-scurry -- BlueOak-1.0.0.
+                                All three via @sentry/nextjs's build plugin.
+  caniuse-lite                  https://github.com/browserslist/caniuse-lite -- CC-BY-4.0
+                                browser-support data used by Next.js at build time.
+                                Attribution: data from caniuse.com by Alexis Deveria.
+
+Functional Source Licence 1.1, MIT future licence (transitive, build tooling only)
+  @sentry/cli (and its          https://github.com/getsentry/sentry-cli -- pulled in by
+  per-platform binaries         @sentry/nextjs's bundler plugin to upload source maps at
+  @sentry/cli-linux-x64 etc.)   build time. A separate native binary run as its own
+                                process, not linked into any app bundle. FSL is
+                                source-available, not open source: it forbids a
+                                "Competing Use" (a product that competes with Sentry)
+                                and each release becomes MIT two years after
+                                publication. Our use is error reporting, not a competing
+                                product, so it is permitted; re-check at resale.
+
+MPL-2.0 (transitive, unmodified, test tooling only -- acceptable per policy)
+  lightningcss (and its         https://github.com/parcel-bundler/lightningcss -- pulled
+  per-platform binaries)        in by vite under vitest. Used unmodified; not part of
+                                any app build.
+
+MPL-2.0 (transitive, unmodified, lint tooling only -- acceptable per policy)
+  axe-core                      https://github.com/dequelabs/axe-core -- pulled in by
+                                eslint-plugin-jsx-a11y. Weak copyleft attaches to
+                                modified MPL files only; used unmodified, never bundled
+                                into an app build.
+
+LGPL-3.0-or-later (transitive, optional, unexercised — acceptable per policy)
+  @img/sharp-libvips-linux-x64  https://github.com/lovell/sharp-libvips -- a native
+                                libvips binary pulled in transitively by `next`'s
+                                optional `sharp` dependency (next/image optimisation).
+                                LGPL is not banned here (only GPL/AGPL are); it is
+                                recorded rather than silently present because this is
+                                the repo's first LGPL npm package. Acceptable on the
+                                same arm's-length reasoning as poppler-utils below: a
+                                separate native binary invoked through `sharp`'s own
+                                bindings, not linked into or modified as part of CaseForge Automation's
+                                own source, and this scaffold never calls next/image,
+                                so the code path that would load it is not exercised
+                                at all today. The lockfiles also record its other
+                                per-platform builds (@img/sharp-libvips-darwin-*,
+                                -linux-arm*, -linuxmusl-*, and @img/sharp-win32-* /
+                                @img/sharp-wasm32 at Apache-2.0 AND LGPL-3.0-or-later);
+                                same package, same reasoning, only the matching one
+                                installs on a given machine.
+
+--------------------------------------------------------------------------------
+CROWN COPYRIGHT COURT FORMS (Open Government Licence v3.0)
+--------------------------------------------------------------------------------
+
+Official HMCTS court forms carried unmodified in templates/PDF Templates/. They are
+Crown copyright and are used under the Open Government Licence v3.0, which permits
+copying, publishing and adapting them, commercially included, on condition of this
+attribution: "Contains public sector information licensed under the Open Government
+Licence v3.0." https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/
+
+  FL401 Apply for a non-molestation or occupation order, edition 02/23
+                                templates/PDF Templates/FL401_0223 blank.pdf
+                                © Crown copyright, HMCTS. Source:
+                                https://assets.publishing.service.gov.uk/media/6504717c6771b90014fdab75/FL401_0223.pdf
+
+  C100 Application for a child arrangements, prohibited steps, specific issue, section 8 order, edition 06/26
+                                templates/PDF Templates/C100_0626_save.pdf
+                                © Crown copyright, HMCTS. Source:
+                                https://assets.publishing.service.gov.uk/media/6a10610c5e28c5cac81cf08e/C100_0626_save.pdf
+
+  C1A Allegations of harm and domestic violence (supplemental information), edition 06/26
+                                templates/PDF Templates/C1A_0626_save.pdf
+                                © Crown copyright, HMCTS. Source:
+                                https://assets.publishing.service.gov.uk/media/6a103d9029bb11891b1cf070/C1A_0626_save.pdf
+
+  C2 Application in existing court proceedings relating to children, edition 06/26
+                                templates/PDF Templates/C2_0626_save.pdf
+                                © Crown copyright, HMCTS. Source:
+                                https://assets.publishing.service.gov.uk/media/6a291f39db0592d809052b7e/C2_0626_save.pdf
+
+  C8 Confidential contact details, edition 06/26
+                                templates/PDF Templates/C8_0626_save.pdf
+                                © Crown copyright, HMCTS. Source:
+                                https://assets.publishing.service.gov.uk/media/6a103f2229bb11891b1cf073/C8_0626_save.pdf
+
+  FP2 Application notice, Part 18 of the Family Procedure Rules 2010, edition 11/14
+                                templates/PDF Templates/FP2_web_1114_save.pdf
+                                © Crown copyright, HMCTS. Source:
+                                https://assets.publishing.service.gov.uk/media/652418beaea2d00013219a4d/FP2_web_1114_save.pdf
+
+  NOTICE 1 Notice of Issue of Certificate, Version 3, August 2014
+                                templates/PDF Templates/LAA Notice of Issue -.pdf
+                                © Crown copyright, Legal Aid Agency. The blank form as
+                                the agency published it, unmodified.
+
+--------------------------------------------------------------------------------
+SYSTEM AND SERVICE DEPENDENCIES (not distributed with CaseForge Automation)
+--------------------------------------------------------------------------------
+
+These are invoked as separate programs or reached over a network. They are not linked
+into CaseForge Automation and are not conveyed with it, so their licences do not reach CaseForge Automation's
+own code. If CaseForge Automation is ever packaged *with* any of them, the packaging must convey that
+component's own licence and, for any copyleft component, its source.
+
+  poppler-utils (pdftoppm,      GPL — separate process, invoked via subprocess
+   pdfinfo, pdftotext)
+  git                           GPL-2.0 — separate process, invoked via subprocess
+  Proton Pass CLI (pass-cli)    GPL-3.0 — separate process, developer credential
+                                retrieval only; not a runtime dependency
+  bubblewrap (bwrap)            LGPL-2.0-or-later — separate process, sandboxes
+                                upload parsing (tools/vergil/uploads.py)
+  rsync                         GPL-3 — separate process, run by operators and ops
+                                runbooks (installed by roles/base_packages)
+  pandoc                        GPL-2+ — separate process, invoked via subprocess
+                                (tools/documents/markdown_to_docx.py, added 2026-08-26
+                                for the Terms of Business / Privacy Notice rewrite;
+                                markdown -> docx only, output post-processed for house
+                                style entirely in CaseForge Automation's own code)
+  tesseract-ocr                 Apache-2.0 — separate process
+  Google Chrome                 proprietary, developer tooling only; not a runtime
+                                dependency and not distributed
+  Microsoft Graph, Azure SQL,
+  Azure Storage, Key Vault      Microsoft commercial terms
+  Anthropic Claude              Anthropic commercial terms
+  Qdrant (server)               Apache-2.0
+  Tailscale, cloudflared        respective vendor terms
+  Documenso (server)            AGPL-3.0 — operated as a STOCK unmodified image over
+                                a network boundary (HTTP API/UI only, env-var config,
+                                never forked or patched); no Documenso code enters
+                                CaseForge Automation source.
+  SeaweedFS (server)            Apache-2.0 — separate process, S3 API
+  Caddy (server)                Apache-2.0 — separate process, reverse proxy
+  Healthchecks (server)         BSD-3-Clause — separate service (stock image, HTTP
+                                ping API), job dead-man-switch monitoring.
+  GlitchTip (server)            MIT — separate service (stock image), receives the
+                                Sentry-protocol error reports.
+  PostgreSQL (server, psql)     PostgreSQL Licence — separate process (stock image)
+  Redis (server)                RSALv2 / SSPLv1 (Redis 7.4) — GlitchTip's queue, stock
+                                image, separate process. Source-available, not GPL or
+                                AGPL; SSPL's obligation is triggered by offering Redis
+                                itself as a service, which we do not. Re-check at
+                                resale; Valkey (BSD-3-Clause) is the drop-in swap.
+  Docker Engine                 Apache-2.0 — container runtime
+  Node.js                       MIT — runtime for the Next.js apps and CLI tools
+  goose                         Apache-2.0 — separate process (tools/vergil/goose/)
+  llama.cpp (llama-server)      MIT — separate process, local model backend
+  gitleaks                      MIT — separate process, pre-push and export scans
+  restic                        BSD-2-Clause — separate process, backups
+  rclone                        MIT — separate process, backups
+  zellij                        MIT — terminal multiplexer, developer tooling
+  Azure CLI (az), Azure         MIT — separate processes, operator and deploy
+  Functions Core Tools (func)   tooling
+  GitHub CLI (gh), glab         MIT — developer tooling
+  SQLite (sqlite3)              public domain
+  Chromium (Playwright build)   BSD-3-Clause and component licences — headless
+                                browser driven over Playwright's protocol
+
+Note on poppler: pdftoppm and pdfinfo are GPL, but they are executed as independent processes with
+data passed in and out, not linked as a library. That is the arm's-length arrangement
+the GPL/AGPL ban is aimed at preserving — no GPL code enters CaseForge Automation's own binary or
+source. If CaseForge Automation is ever shipped as a bundle including poppler, the bundle must carry
+poppler's GPL text and source offer while CaseForge Automation's own code stays under its
+own licence.

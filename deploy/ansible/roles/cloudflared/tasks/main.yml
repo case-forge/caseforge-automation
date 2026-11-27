@@ -1,0 +1,174 @@
+---
+
+- name: "[caseforge] cloudflared skipped (cloudflared_enabled=false)"
+  ansible.builtin.debug:
+    msg: >-
+      [caseforge] cloudflared not provisioned on this host. A tunnel connector
+      is opt-in per box: two connectors on one tunnel is a routing surprise,
+      not redundancy. Set cloudflared_enabled=true in the inventory to enable.
+  when: not (cloudflared_enabled | bool)
+
+- name: Provision the cloudflared connector
+  when: cloudflared_enabled | bool
+  block:
+    - name: Read CF_TUNNEL_TOKEN from the generated env file, if not explicitly supplied
+      ansible.builtin.shell:
+        cmd: >
+          set -a; . {{ repo_checkout_dir }}/.secrets/caseforge-env 2>/dev/null; set +a;
+          printf '%s' "${CF_TUNNEL_TOKEN:-}"
+        executable: /bin/bash
+      register: cloudflared_token_from_env
+      when: (cloudflared_tunnel_token | length == 0) and (repo_checkout_enabled | bool)
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      become: false
+      no_log: true
+
+    - name: Use the Key-Vault-sourced token when none was explicitly supplied
+      ansible.builtin.set_fact:
+        cloudflared_tunnel_token: "{{ cloudflared_token_from_env.stdout }}"
+      when:
+        - cloudflared_tunnel_token | length == 0
+        - cloudflared_token_from_env is not skipped
+        - cloudflared_token_from_env.stdout | default('') | length > 0
+      no_log: true
+
+    - name: Refuse to proceed without a tunnel token
+      ansible.builtin.assert:
+        that:
+          - cloudflared_tunnel_token | length > 0
+        fail_msg: >-
+          cloudflared_enabled=true but cloudflared_tunnel_token is empty and
+          CF_TUNNEL_TOKEN wasn't found in .secrets/caseforge-env either. Supply it
+          from an Ansible-Vault-encrypted var or -e at runtime, the same way
+          roles/secrets_bootstrap takes its SP credentials, or run
+          secrets_bootstrap first. Never inline it in a tracked file.
+
+    - name: Detect a connector that still runs as the old container
+      ansible.builtin.shell:
+        cmd: "docker ps -a --filter name=^/{{ cloudflared_legacy_container_name }}$ --format '{{ '{{.Names}}' }}' 2>/dev/null || true"
+        executable: /bin/bash
+      register: cloudflared_legacy
+      changed_when: false
+      failed_when: false
+      check_mode: false
+
+    - name: Add Cloudflare's apt signing key
+      ansible.builtin.get_url:
+        url: "{{ cloudflared_apt_key_url }}"
+        dest: "{{ cloudflared_apt_key_path }}"
+        mode: "0644"
+
+    - name: Add Cloudflare's apt repository
+      ansible.builtin.apt_repository:
+        repo: "{{ cloudflared_apt_repo }}"
+        filename: "{{ cloudflared_apt_sources_file }}"
+        state: present
+        update_cache: true
+
+    - name: Install cloudflared from the apt repository
+      ansible.builtin.apt:
+        name: cloudflared
+        state: present
+
+    - name: Let unattended-upgrades take cloudflared from Cloudflare's repo
+      ansible.builtin.copy:
+        dest: /etc/apt/apt.conf.d/53cloudflared
+        mode: "0644"
+        content: |
+          // Managed by Ansible (roles/cloudflared).
+          Unattended-Upgrade::Allowed-Origins:: "cloudflared:any";
+          // After any dpkg run, restart the tunnel only if apt replaced its binary.
+          DPkg::Post-Invoke { "/usr/local/sbin/cloudflared-restart-if-upgraded"; };
+
+    - name: Install the restart-if-upgraded helper
+      ansible.builtin.copy:
+        src: cloudflared-restart-if-upgraded
+        dest: /usr/local/sbin/cloudflared-restart-if-upgraded
+        mode: "0755"
+
+    - name: Verify apt now lists cloudflared as an unattended-upgrade origin
+      ansible.builtin.command: apt-config dump Unattended-Upgrade::Allowed-Origins
+      register: cloudflared_uu_origins
+      changed_when: false
+      failed_when: "'cloudflared:any' not in cloudflared_uu_origins.stdout"
+      check_mode: false
+
+    - name: Ensure the env directory exists
+      ansible.builtin.file:
+        path: "{{ cloudflared_env_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Write the tunnel token to a private env file
+      ansible.builtin.copy:
+        content: "TUNNEL_TOKEN={{ cloudflared_tunnel_token }}\n"
+        dest: "{{ cloudflared_env_file }}"
+        owner: root
+        group: root
+        mode: "0600"
+      no_log: true
+
+    - name: Render the cloudflared systemd unit
+      ansible.builtin.template:
+        src: cloudflared.service.j2
+        dest: "/etc/systemd/system/{{ cloudflared_service_name }}.service"
+        mode: "0644"
+      register: cloudflared_unit
+
+    - name: Reload systemd after a unit change
+      ansible.builtin.systemd:
+        daemon_reload: true
+      when: cloudflared_unit is changed
+
+    - name: "[caseforge] cloudflared NOT started -- the old container still runs here"
+      ansible.builtin.debug:
+        msg: >-
+          [caseforge] cloudflared package, token file and unit are in place, but
+          the unit is not enabled or started: container
+          {{ cloudflared_legacy_container_name }} still runs here and carries
+          every production hostname. Both would bind the metrics port. Cut over
+          deliberately in a chosen window.
+      when: cloudflared_legacy.stdout | trim | length > 0
+
+    - name: Enable and start the connector
+      ansible.builtin.systemd:
+        name: "{{ cloudflared_service_name }}"
+        enabled: true
+        state: started
+      when: cloudflared_legacy.stdout | trim | length == 0
+
+    - name: Wait for the connector to report ready
+      ansible.builtin.uri:
+        url: "http://{{ cloudflared_metrics_bind }}/ready"
+        timeout: 5
+      register: cloudflared_ready
+      retries: 12
+      delay: 5
+      until: cloudflared_ready.status is defined and cloudflared_ready.status == 200
+      when: cloudflared_legacy.stdout | trim | length == 0
+
+    - name: "[caseforge] cloudflared connector up"
+      ansible.builtin.debug:
+        msg: >-
+          [caseforge] cloudflared running as {{ cloudflared_service_name }}.service,
+          metrics pinned to {{ cloudflared_metrics_bind }},
+          readyConnections={{ cloudflared_ready.json.readyConnections | default('?') }}.
+      when: cloudflared_legacy.stdout | trim | length == 0
+
+    - name: Look for a stray copy of cloudflared that shadows the apt one on PATH
+      ansible.builtin.stat:
+        path: /usr/local/bin/cloudflared
+      register: cloudflared_stray
+
+    - name: "[caseforge] /usr/local/bin/cloudflared shadows /usr/bin/cloudflared"
+      ansible.builtin.debug:
+        msg: >-
+          [caseforge] /usr/local/bin/cloudflared exists and comes first on PATH,
+          so `cloudflared --version` on this box reports it, not the apt package
+          the unit runs (/usr/bin/cloudflared). Remove it by hand after the
+          cutover is confirmed.
+      when: cloudflared_stray.stat.exists

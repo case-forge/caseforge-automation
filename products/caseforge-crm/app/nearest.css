@@ -1,0 +1,28 @@
+
+.nearest-help-toggle { font-weight: inherit; }
+.nearest-help-body {
+  font-size: var(--fs-body);
+  overflow-wrap: anywhere;
+}
+.nearest-help-body h4 {
+  margin: var(--sp-2) 0 var(--sp-1);
+  font-size: var(--fs-body);
+}
+.nearest-help-body p {
+  margin: 0 0 var(--sp-1);
+}
+.nearest-help-muted {
+  color: var(--muted);
+}
+.nearest-help-line {
+  display: block;
+  color: var(--muted);
+  font-size: var(--fs-body);
+}
+.nearest-help-list {
+  margin: 0;
+  padding-left: var(--sp-4);
+}
+.nearest-help-list li {
+  margin-bottom: var(--sp-1);
+}

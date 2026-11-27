@@ -1,0 +1,13 @@
+---
+clean_room_host_enabled: false
+
+clean_room_host_packages:
+  - qemu-system-x86
+  - qemu-utils
+  - libvirt-daemon-system
+  - libvirt-clients
+  - cloud-image-utils
+  - genisoimage
+  - xsltproc
+
+clean_room_host_groups: [libvirt, kvm]

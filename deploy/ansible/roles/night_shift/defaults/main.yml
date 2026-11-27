@@ -1,0 +1,14 @@
+---
+night_shift_enabled: false
+night_shift_unit_dir: "{{ checkout_owner_home }}/.config/systemd/user"
+night_shift_checkout: "{{ checkout_owner_home }}/caseforge-automation"
+night_shift_worktree: "{{ checkout_owner_home }}/night-shift-main"
+night_shift_source_dir: "{{ night_shift_worktree }}/deploy/systemd/user"
+night_shift_units:
+  - caseforge-night-shift.service
+  - caseforge-night-shift.timer
+  - caseforge-worktree-janitor.service
+  - caseforge-worktree-janitor.timer
+night_shift_timers:
+  - caseforge-night-shift.timer
+  - caseforge-worktree-janitor.timer

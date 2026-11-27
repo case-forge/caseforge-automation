@@ -1,0 +1,5 @@
+---
+canary_beat_enabled: false
+canary_beat_app_dir: /opt/caseforge-canary
+canary_beat_env_file: /etc/caseforge-canary.env
+canary_beat_source_dir: "{{ repo_checkout_dir }}/tools/monitoring"

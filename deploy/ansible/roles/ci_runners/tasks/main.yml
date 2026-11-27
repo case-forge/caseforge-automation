@@ -1,0 +1,90 @@
+---
+
+- name: Shared CI root and tool cache live on the root filesystem
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ ci_runners_user }}"
+    group: "{{ ci_runners_user }}"
+    mode: "0755"
+  loop:
+    - "{{ ci_runners_root }}"
+    - "{{ ci_runners_tool_cache }}"
+
+- name: Assert the CI root is not on a RAM-backed path
+  ansible.builtin.assert:
+    that: not (ci_runners_root is match('^(/tmp|/dev/shm|/run|/var/run)(/|$)'))
+    fail_msg: "ci_runners_root {{ ci_runners_root }} is RAM-backed; runner TMPDIR and work folders must be on disk (docs/box-capacity.md)"
+
+- name: Age out leftover runner scratch (systemd-tmpfiles, daily)
+  ansible.builtin.copy:
+    dest: /etc/tmpfiles.d/caseforge-ci-tmp-clean.conf
+    mode: "0644"
+    content: |
+      e {{ ci_runners_root }}/tmp* - - - 1d
+
+- name: Configure each local runner
+  ansible.builtin.include_tasks: runner.yml
+  loop: "{{ ci_runners_local + ci_runners_extra + ci_runners_small }}"
+  loop_control:
+    loop_var: runner
+
+- name: Retire the runners that are switched off (kept on disk and on GitHub)
+  ansible.builtin.include_tasks: retire.yml
+  loop: "{{ ci_runners_retired }}"
+  loop_control:
+    loop_var: runner
+
+- name: Install the controller
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../../tools/ci/runner_controller.py"
+    dest: /usr/local/sbin/ci-runner-controller
+    mode: "0755"
+
+- name: Controller config directory
+  ansible.builtin.file:
+    path: /etc/caseforge
+    state: directory
+    mode: "0755"
+
+- name: Controller config
+  ansible.builtin.copy:
+    dest: /etc/caseforge/runner-controller.json
+    mode: "0644"
+    content: "{{ ci_runners_controller_config | to_nice_json }}\n"
+  vars:
+    ci_runners_controller_config: >-
+      {{ ci_runners_controller | combine({
+        'repo': ci_runners_repo,
+        'local': ci_runners_local,
+        'overflow': {
+          'name': ci_runners_overflow.name,
+          'unit': ci_runners_overflow.unit,
+          'ssh': ['ssh', '-i', ci_runners_overflow.key, '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=10',
+                  '-o', 'StrictHostKeyChecking=accept-new',
+                  '-o', 'UserKnownHostsFile=' + ci_runners_home + '/.ssh/known_hosts',
+                  ci_runners_overflow.host]
+        }
+      }) }}
+
+- name: Controller service
+  ansible.builtin.template:
+    src: ci-runner-controller.service.j2
+    dest: /etc/systemd/system/ci-runner-controller.service
+    mode: "0644"
+  notify: reload systemd manager
+
+- name: Controller timer
+  ansible.builtin.copy:
+    src: ci-runner-controller.timer
+    dest: /etc/systemd/system/ci-runner-controller.timer
+    mode: "0644"
+  notify: reload systemd manager
+
+- name: Run the controller every minute
+  ansible.builtin.systemd_service:
+    name: ci-runner-controller.timer
+    enabled: true
+    state: started
+    daemon_reload: true
+  ignore_errors: "{{ ansible_check_mode }}"

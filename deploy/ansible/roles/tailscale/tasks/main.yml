@@ -1,0 +1,118 @@
+---
+- name: Check for existing tailscale
+  ansible.builtin.command: tailscale version
+  register: tailscale_existing
+  changed_when: false
+  check_mode: false
+  failed_when: false
+
+- name: Install Tailscale via the official script
+  ansible.builtin.shell:
+    cmd: "curl -fsSL https://tailscale.com/install.sh | sh"
+  when: tailscale_existing.rc != 0
+
+- name: Tailscale apt source for the running release
+  ansible.builtin.copy:
+    dest: /etc/apt/sources.list.d/tailscale.sources
+    content: |
+      Types: deb
+      URIs: https://pkgs.tailscale.com/stable/{{ ansible_facts['distribution'] | lower }}
+      Suites: {{ ansible_facts['distribution_release'] }}
+      Components: main
+      Signed-By: /usr/share/keyrings/tailscale-archive-keyring.gpg
+    mode: "0644"
+  when:
+    - ansible_facts['os_family'] == 'Debian'
+    - ansible_facts['distribution'] in ['Ubuntu', 'Debian']
+  register: tailscale_apt_source
+
+- name: Remove the stale one-line Tailscale apt source
+  ansible.builtin.file:
+    path: /etc/apt/sources.list.d/tailscale.list
+    state: absent
+  when: ansible_facts['os_family'] == 'Debian'
+
+- name: Keep the Tailscale package current
+  ansible.builtin.apt:
+    name: tailscale
+    state: latest
+    update_cache: "{{ tailscale_apt_source is changed }}"
+  when:
+    - ansible_facts['os_family'] == 'Debian'
+    - tailscale_existing.rc == 0
+
+- name: Enable Tailscale's built-in auto-update
+  ansible.builtin.command: tailscale set --auto-update=true
+  changed_when: true
+  failed_when: false
+
+- name: Tailscale-online readiness unit (blocks docker.service until the tailnet IP exists)
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/tailscale-online.service
+    content: |
+      [Unit]
+      Description=Block until Tailscale has acquired an IPv4 address
+      After=tailscaled.service
+      Wants=tailscaled.service
+      Before=docker.service
+
+      [Service]
+      Type=oneshot
+      RemainAfterExit=yes
+      ExecStart=/bin/sh -c 'for i in $(seq 1 60); do tailscale ip -4 >/dev/null 2>&1 && exit 0; sleep 1; done; echo "tailscale-online: no tailnet IP after 60s, continuing anyway" >&2; exit 0'
+
+      [Install]
+      WantedBy=multi-user.target
+    mode: "0644"
+  register: tailscale_online_unit
+
+- name: Enable tailscale-online.service
+  ansible.builtin.systemd_service:
+    name: tailscale-online.service
+    daemon_reload: "{{ tailscale_online_unit.changed }}"
+    enabled: true
+
+- name: Read the current tailscale serve configuration
+  ansible.builtin.command: tailscale serve status --json
+  register: tailscale_serve_status
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  when: tailscale_serve_https | length > 0
+
+- name: "[caseforge] tailscale serve not configured: this box is not enrolled"
+  ansible.builtin.debug:
+    msg: >-
+      [caseforge] `tailscale serve status` failed, so no serve mapping was added.
+      Enrol the box (`tailscale up`) and run the role again.
+  when:
+    - tailscale_serve_https | length > 0
+    - tailscale_serve_status.rc != 0
+
+- name: Parse the tailscale serve configuration
+  ansible.builtin.set_fact:
+    tailscale_serve_config: "{{ tailscale_serve_status.stdout | default('{}', true) | from_json }}"
+  when:
+    - tailscale_serve_https | length > 0
+    - tailscale_serve_status.rc == 0
+
+- name: Refuse to replace a tailnet port that serves something else
+  ansible.builtin.assert:
+    that:
+      - >-
+        (item.port | string) not in (tailscale_serve_config.TCP | default({}))
+        or (item.target | regex_replace('^https?://', '')) in (tailscale_serve_config | to_json)
+    fail_msg: >-
+      [caseforge] tailnet port {{ item.port }} already serves something other than
+      {{ item.target }}. Nothing was changed. Check `tailscale serve status` on this
+      box and correct tailscale_serve_https or the mapping by hand.
+  loop: "{{ tailscale_serve_https }}"
+  when: tailscale_serve_config is defined
+
+- name: Proxy each unserved tailnet HTTPS port to its local target
+  ansible.builtin.command: "tailscale serve --bg --https={{ item.port }} {{ item.target }}"
+  loop: "{{ tailscale_serve_https }}"
+  timeout: "{{ tailscale_serve_timeout }}"
+  when:
+    - tailscale_serve_config is defined
+    - (item.port | string) not in (tailscale_serve_config.TCP | default({}))

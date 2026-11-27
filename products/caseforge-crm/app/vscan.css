@@ -1,0 +1,42 @@
+
+.vscan-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--sp-2); }
+.vscan-row {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  padding: var(--sp-2) var(--sp-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+.vscan-row[data-status="undone"] { opacity: 0.7; }
+.vscan-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--sp-2); }
+.vscan-title { font-weight: 600; overflow-wrap: anywhere; }
+.vscan-tag {
+  font-size: var(--fs-label);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: 0 var(--sp-2);
+  color: var(--muted);
+}
+.vscan-also { font-size: var(--fs-label); color: var(--muted); }
+.vscan-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+.vscan-date { display: inline-flex; align-items: center; gap: var(--sp-1); font-size: var(--fs-body); color: var(--muted); }
+.vscan-viewer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  align-items: flex-start;
+}
+
+.vscan-page { width: 100%; max-width: 30rem; aspect-ratio: 900 / 1273; background: var(--paper); box-shadow: var(--box-lift); border-radius: var(--radius-sm); overflow: hidden; }
+.vscan-page[data-state="loading"] { background: var(--surface); animation: vscan-pulse 1.2s ease-in-out infinite; }
+.vscan-page img { display: block; width: 100%; height: auto; }
+.vscan-page[data-state="ready"] { aspect-ratio: auto; }
+@keyframes vscan-pulse { 50% { opacity: 0.6; } }
+@media (prefers-reduced-motion: reduce) { .vscan-page[data-state="loading"] { animation: none; } }
+.vscan-subtitle { margin: var(--sp-2) 0 0; font-size: var(--fs-heading); }
+.vscan-add summary { cursor: pointer; color: var(--accent); }
+.vscan-orders { display: flex; flex-direction: column; gap: var(--sp-1); }
+.vscan-last { margin: 0; overflow-wrap: anywhere; }
+.vscan-hints { margin: 0; padding-left: var(--sp-4); font-size: var(--fs-body); display: flex; flex-direction: column; gap: var(--sp-1); overflow-wrap: anywhere; }

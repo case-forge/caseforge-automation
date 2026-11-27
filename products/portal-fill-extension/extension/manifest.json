@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "CaseForge page filler (prototype, local stand-ins only)",
+  "version": "0.0.1",
+  "description": "Fills the page in view from a one-matter answers export that the caseworker pastes in. Makes no network requests.",
+  "minimum_chrome_version": "137",
+  "permissions": ["activeTab", "scripting", "storage"],
+  "background": { "service_worker": "background.js", "type": "module" },
+  "action": { "default_title": "CaseForge page filler", "default_popup": "popup.html" },
+  "commands": {
+    "fill-page": { "suggested_key": { "default": "Alt+Shift+F" }, "description": "Fill this page" }
+  },
+  "content_security_policy": {
+    "extension_pages": "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'none'; form-action 'none'; base-uri 'none'"
+  }
+}

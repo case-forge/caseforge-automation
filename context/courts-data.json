@@ -1,0 +1,371 @@
+{
+  "courts": [
+    {
+      "name": "Central Family Court",
+      "location": "London",
+      "lat": 51.5145,
+      "lon": -0.1053,
+      "notes": "Main London family court"
+    },
+    {
+      "name": "Barnet Family Court",
+      "location": "Barnet, London",
+      "lat": 51.6252,
+      "lon": -0.1517
+    },
+    {
+      "name": "Kingston-Upon-Thames Family Court",
+      "location": "Kingston, London",
+      "lat": 51.4085,
+      "lon": -0.3064
+    },
+    {
+      "name": "Willesden Magistrates' Court",
+      "location": "Willesden, London",
+      "lat": 51.5494,
+      "lon": -0.2435
+    },
+    {
+      "name": "Edmonton Magistrates' Court",
+      "location": "Edmonton, London",
+      "lat": 51.6134,
+      "lon": -0.073
+    },
+    {
+      "name": "Birkenhead County Court",
+      "location": "Birkenhead",
+      "lat": 53.393,
+      "lon": -3.0149
+    },
+    {
+      "name": "Chester Family Court",
+      "location": "Chester",
+      "lat": 53.1905,
+      "lon": -2.8908
+    },
+    {
+      "name": "Crewe Family Court",
+      "location": "Crewe",
+      "lat": 53.0979,
+      "lon": -2.4416,
+      "notes": "Common to have same-day hearings for non-mols"
+    },
+    {
+      "name": "Lancaster Family Court",
+      "location": "Lancaster",
+      "lat": 54.0465,
+      "lon": -2.8007
+    },
+    {
+      "name": "Liverpool Family Court",
+      "location": "Liverpool",
+      "lat": 53.4084,
+      "lon": -2.9916
+    },
+    {
+      "name": "Manchester Family Court",
+      "location": "Manchester",
+      "lat": 53.4808,
+      "lon": -2.2426
+    },
+    {
+      "name": "St Helens Magistrates' Court",
+      "location": "St Helens",
+      "lat": 53.453,
+      "lon": -2.7373
+    },
+    {
+      "name": "Stockport Magistrates' Court",
+      "location": "Stockport",
+      "lat": 53.4106,
+      "lon": -2.1575
+    },
+    {
+      "name": "Wigan Magistrates' Court",
+      "location": "Wigan",
+      "lat": 53.5448,
+      "lon": -2.6318
+    },
+    {
+      "name": "Bradford Family Court",
+      "location": "Bradford",
+      "lat": 53.796,
+      "lon": -1.7594
+    },
+    {
+      "name": "Doncaster Family Court",
+      "location": "Doncaster",
+      "lat": 53.5228,
+      "lon": -1.1285
+    },
+    {
+      "name": "Gateshead Magistrates' Court",
+      "location": "Gateshead",
+      "lat": 54.9526,
+      "lon": -1.6034
+    },
+    {
+      "name": "Huddersfield Family Court",
+      "location": "Huddersfield",
+      "lat": 53.6458,
+      "lon": -1.785
+    },
+    {
+      "name": "Kingston-Upon-Hull Family Court",
+      "location": "Hull",
+      "lat": 53.7457,
+      "lon": -0.3367
+    },
+    {
+      "name": "Leeds Family Court",
+      "location": "Leeds",
+      "lat": 53.8008,
+      "lon": -1.5491
+    },
+    {
+      "name": "Middlesbrough Family Court",
+      "location": "Middlesbrough",
+      "lat": 54.5742,
+      "lon": -1.235
+    },
+    {
+      "name": "Newcastle upon Tyne Family Court",
+      "location": "Newcastle",
+      "lat": 54.9783,
+      "lon": -1.6178
+    },
+    {
+      "name": "Sheffield Family Court",
+      "location": "Sheffield",
+      "lat": 53.3811,
+      "lon": -1.4701
+    },
+    {
+      "name": "Sunderland Family Court",
+      "location": "Sunderland",
+      "lat": 54.9069,
+      "lon": -1.3838
+    },
+    {
+      "name": "York Family Court",
+      "location": "York",
+      "lat": 53.9591,
+      "lon": -1.0815
+    },
+    {
+      "name": "Birmingham Family Court",
+      "location": "Birmingham",
+      "lat": 52.4862,
+      "lon": -1.8904
+    },
+    {
+      "name": "Coventry Family Court",
+      "location": "Coventry",
+      "lat": 52.4068,
+      "lon": -1.5197
+    },
+    {
+      "name": "Leicester Family Court",
+      "location": "Leicester",
+      "lat": 52.6369,
+      "lon": -1.1398
+    },
+    {
+      "name": "Lincoln Family Court",
+      "location": "Lincoln",
+      "lat": 53.2307,
+      "lon": -0.5406
+    },
+    {
+      "name": "Northampton Family Court",
+      "location": "Northampton",
+      "lat": 52.2405,
+      "lon": -0.9027
+    },
+    {
+      "name": "Nottingham Family Court",
+      "location": "Nottingham",
+      "lat": 52.9548,
+      "lon": -1.1581
+    },
+    {
+      "name": "Stoke-on-Trent Family Court",
+      "location": "Stoke-on-Trent",
+      "lat": 53.0027,
+      "lon": -2.1794
+    },
+    {
+      "name": "Telford Magistrates' Court",
+      "location": "Telford",
+      "lat": 52.6766,
+      "lon": -2.4474
+    },
+    {
+      "name": "Wolverhampton Family Court",
+      "location": "Wolverhampton",
+      "lat": 52.5855,
+      "lon": -2.129
+    },
+    {
+      "name": "Worcester Family Court",
+      "location": "Worcester",
+      "lat": 52.1936,
+      "lon": -2.221
+    },
+    {
+      "name": "Aldershot Magistrates' Court",
+      "location": "Aldershot",
+      "lat": 51.248,
+      "lon": -0.7636
+    },
+    {
+      "name": "Basingstoke Magistrates' Court",
+      "location": "Basingstoke",
+      "lat": 51.2664,
+      "lon": -1.0871,
+      "notes": "Sends emails to Portsmouth court"
+    },
+    {
+      "name": "Bedford Magistrates' Court",
+      "location": "Bedford",
+      "lat": 52.1357,
+      "lon": -0.4669,
+      "notes": "Sends emails to Luton court"
+    },
+    {
+      "name": "Canterbury Family Court",
+      "location": "Canterbury",
+      "lat": 51.2802,
+      "lon": 1.0789
+    },
+    {
+      "name": "Chelmsford Family Court",
+      "location": "Chelmsford",
+      "lat": 51.7356,
+      "lon": 0.4685
+    },
+    {
+      "name": "Colchester Magistrates' Court",
+      "location": "Colchester",
+      "lat": 51.886,
+      "lon": 0.9035
+    },
+    {
+      "name": "Guildford Family Court",
+      "location": "Guildford",
+      "lat": 51.2362,
+      "lon": -0.5704
+    },
+    {
+      "name": "Ipswich Family Court",
+      "location": "Ipswich",
+      "lat": 52.0594,
+      "lon": 1.1556
+    },
+    {
+      "name": "Luton Family Court",
+      "location": "Luton",
+      "lat": 51.8787,
+      "lon": -0.42
+    },
+    {
+      "name": "Medway Magistrates' Court",
+      "location": "Medway",
+      "lat": 51.3886,
+      "lon": 0.5214,
+      "notes": "Call 1 day ahead and attend for ex-parte"
+    },
+    {
+      "name": "Norwich Family Court",
+      "location": "Norwich",
+      "lat": 52.6309,
+      "lon": 1.2974
+    },
+    {
+      "name": "Oxford Family Court",
+      "location": "Oxford",
+      "lat": 51.752,
+      "lon": -1.2577
+    },
+    {
+      "name": "Portsmouth Family Court",
+      "location": "Portsmouth",
+      "lat": 50.8198,
+      "lon": -1.088,
+      "notes": "Asks for D11 instead of C2 for making applications to edit"
+    },
+    {
+      "name": "Reading Family Court",
+      "location": "Reading",
+      "lat": 51.4543,
+      "lon": -0.9781
+    },
+    {
+      "name": "Slough Family Court",
+      "location": "Slough",
+      "lat": 51.5105,
+      "lon": -0.595
+    },
+    {
+      "name": "Southampton Family Court",
+      "location": "Southampton",
+      "lat": 50.9097,
+      "lon": -1.4044
+    },
+    {
+      "name": "Worthing Magistrates' Court",
+      "location": "Worthing",
+      "lat": 50.8145,
+      "lon": -0.3716
+    },
+    {
+      "name": "Bristol Family Court",
+      "location": "Bristol",
+      "lat": 51.4545,
+      "lon": -2.5879
+    },
+    {
+      "name": "Cardiff Family Court",
+      "location": "Cardiff",
+      "lat": 51.4816,
+      "lon": -3.1791
+    },
+    {
+      "name": "Exeter Family Court",
+      "location": "Exeter",
+      "lat": 50.7184,
+      "lon": -3.5339
+    },
+    {
+      "name": "Newport Family Court",
+      "location": "Newport",
+      "lat": 51.5842,
+      "lon": -2.9977
+    },
+    {
+      "name": "Swansea Family Court",
+      "location": "Swansea",
+      "lat": 51.6214,
+      "lon": -3.9436
+    },
+    {
+      "name": "Taunton Family Court",
+      "location": "Taunton",
+      "lat": 51.015,
+      "lon": -3.1006
+    },
+    {
+      "name": "Truro Family Court",
+      "location": "Truro, Cornwall",
+      "lat": 50.2632,
+      "lon": -5.051
+    },
+    {
+      "name": "Wrexham Magistrates' Court",
+      "location": "Wrexham",
+      "lat": 53.0462,
+      "lon": -2.993,
+      "notes": "Sends emails to Wolverhampton or Telford"
+    }
+  ]
+}

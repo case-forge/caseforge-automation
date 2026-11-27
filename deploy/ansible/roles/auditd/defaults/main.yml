@@ -1,0 +1,4 @@
+---
+auditd_enabled: false
+auditd_max_log_file_mb: 20
+auditd_num_logs: 10

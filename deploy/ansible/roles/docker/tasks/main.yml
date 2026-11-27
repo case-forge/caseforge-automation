@@ -1,0 +1,111 @@
+---
+- name: Check for existing docker
+  ansible.builtin.command: docker --version
+  register: docker_existing
+  changed_when: false
+  check_mode: false
+  failed_when: false
+
+- name: Install Docker CE via the official convenience script (get.docker.com)
+  ansible.builtin.shell:
+    cmd: "curl -fsSL https://get.docker.com | sh"
+  when: docker_existing.rc != 0
+
+- name: "[caseforge] Docker status"
+  ansible.builtin.debug:
+    msg: >-
+      [caseforge] Docker installed
+      {{ '' if docker_existing.rc != 0 else '(already present: ' + docker_existing.stdout + ')' }}
+
+
+- name: Read any existing /etc/docker/daemon.json
+  ansible.builtin.slurp:
+    src: /etc/docker/daemon.json
+  register: docker_daemon_json_existing
+  failed_when: false
+  check_mode: false
+
+- name: Compute the merged daemon.json content
+  ansible.builtin.set_fact:
+    docker_daemon_json_merged: >-
+      {{ ((docker_daemon_json_existing.content | b64decode | from_json)
+           if (docker_daemon_json_existing.content is defined)
+           else {})
+         | combine({
+             'log-driver': docker_log_driver,
+             'log-opts': {
+               'max-size': docker_log_max_size,
+               'max-file': docker_log_max_file,
+             },
+           }) }}
+
+- name: Write /etc/docker/daemon.json with log rotation
+  ansible.builtin.copy:
+    content: "{{ docker_daemon_json_merged | to_nice_json }}\n"
+    dest: /etc/docker/daemon.json
+    mode: "0644"
+  register: docker_daemon_json_written
+  notify: restart docker daemon
+
+- name: "[caseforge] Docker log rotation"
+  ansible.builtin.debug:
+    msg: >-
+      [caseforge] docker log rotation: {{ docker_log_driver }},
+      max-size={{ docker_log_max_size }} x max-file={{ docker_log_max_file }}
+      ({{ (docker_log_max_size | regex_replace('[^0-9]', '') | int) * (docker_log_max_file | int) }}MB ceiling per container).
+      {% if docker_daemon_json_written.changed and not docker_restart_daemon_on_log_config_change %}
+      daemon NOT restarted (docker_restart_daemon_on_log_config_change=false):
+      log-driver is not a SIGHUP-reloadable option, so this takes effect at the
+      next daemon start. EXISTING containers keep their current log config
+      until they are recreated -- only new ones pick this up.
+      {% endif %}
+
+- name: Weekly Docker prune timer (safe scope -- no -a, no --volumes)
+  when: docker_existing.rc == 0 or not docker_existing.failed
+  block:
+    - name: Docker prune service unit
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/caseforge-docker-prune.service
+        content: |
+          [Unit]
+          Description=Prune unused Docker containers/images/networks/build cache (safe scope: no -a, no --volumes)
+          OnFailure=caseforge-failure-alert@%n.service
+          [Service]
+          Type=oneshot
+          ExecStart=/usr/bin/docker system prune -f
+        mode: "0644"
+      register: docker_prune_unit
+
+    - name: Docker prune timer unit
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/caseforge-docker-prune.timer
+        content: |
+          [Unit]
+          Description=Weekly Docker prune (safe scope)
+          [Timer]
+          OnCalendar=weekly
+          Persistent=true
+          [Install]
+          WantedBy=timers.target
+        mode: "0644"
+      register: docker_prune_timer
+
+    - name: Enable + start docker prune timer
+      ansible.builtin.systemd_service:
+        name: caseforge-docker-prune.timer
+        daemon_reload: "{{ docker_prune_unit.changed or docker_prune_timer.changed }}"
+        enabled: true
+        state: started
+
+- name: List existing containers (running or not)
+  ansible.builtin.command: docker ps -a --format '{{ '{{' }}.Names{{ '}}' }}'
+  register: docker_existing_containers
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  when: docker_retired_containers | length > 0
+
+- name: Stop and remove retired containers (volumes are kept)
+  ansible.builtin.command: "docker rm -f {{ item }}"
+  loop: "{{ docker_retired_containers | intersect(docker_existing_containers.stdout_lines | default([])) }}"
+  when: docker_retired_containers | length > 0

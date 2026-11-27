@@ -1,0 +1,8 @@
+---
+secrets_bootstrap_vault_name: set-your-key-vault-name-here
+
+secrets_bootstrap_sp_client_id: ""
+secrets_bootstrap_sp_client_secret: ""
+secrets_bootstrap_sp_tenant_id: ""
+
+secrets_bootstrap_sp_env_path: "{{ repo_checkout_dir }}/.secrets/azure-sp-env"

@@ -1,0 +1,50 @@
+---
+- name: "[caseforge] auditd skipped for this box"
+  ansible.builtin.debug:
+    msg: "[caseforge] Skipping the device audit: auditd_enabled is not set for this host."
+  when: not (auditd_enabled | bool)
+
+- block:
+    - name: auditd
+      ansible.builtin.apt:
+        name: auditd
+        state: present
+
+    - name: Look for the daemon's config file
+      ansible.builtin.stat:
+        path: /etc/audit/auditd.conf
+      register: auditd_conf_file
+
+    - name: Bound the log size and number of files
+      ansible.builtin.lineinfile:
+        path: /etc/audit/auditd.conf
+        regexp: "^{{ item.key }}\\s*="
+        line: "{{ item.key }} = {{ item.value }}"
+      loop:
+        - { key: max_log_file, value: "{{ auditd_max_log_file_mb }}" }
+        - { key: num_logs, value: "{{ auditd_num_logs }}" }
+        - { key: max_log_file_action, value: ROTATE }
+      register: auditd_conf
+      when: auditd_conf_file.stat.exists
+
+    - name: Rule set
+      ansible.builtin.copy:
+        src: amadioha.rules
+        dest: /etc/audit/rules.d/amadioha.rules
+        owner: root
+        group: root
+        mode: "0640"
+      register: auditd_rules
+
+    - name: Enable and start the daemon
+      ansible.builtin.systemd_service:
+        name: auditd
+        enabled: true
+        state: started
+      when: not ansible_check_mode or auditd_conf_file.stat.exists
+
+    - name: Load the rules
+      ansible.builtin.command: augenrules --load
+      when: auditd_rules.changed
+      changed_when: true
+  when: auditd_enabled | bool

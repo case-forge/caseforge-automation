@@ -1,0 +1,42 @@
+---
+
+- name: Retire fstab lines for drives that are not part of the root
+  ansible.builtin.lineinfile:
+    path: /etc/fstab
+    regexp: "^{{ item | regex_escape }}\\s"
+    state: absent
+    backup: true
+  loop: "{{ portable_hardware_retired_fstab_sources }}"
+  notify: reload systemd manager
+
+- name: Remove the unconditional legion_laptop module load
+  ansible.builtin.file:
+    path: /etc/modules-load.d/legion-laptop.conf
+    state: absent
+
+- name: Install the boot-time hardware profile script
+  ansible.builtin.copy:
+    src: portable-hw-profile
+    dest: /usr/local/sbin/portable-hw-profile
+    mode: "0755"
+
+- name: Install the boot-time hardware profile unit
+  ansible.builtin.copy:
+    src: portable-hw-profile.service
+    dest: /etc/systemd/system/portable-hw-profile.service
+    mode: "0644"
+  notify: reload systemd manager
+
+- name: Enable the hardware profile unit
+  ansible.builtin.systemd_service:
+    name: portable-hw-profile.service
+    enabled: true
+    daemon_reload: true
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: Make the laptop's own drives read-only to the kernel
+  ansible.builtin.copy:
+    src: 90-internal-drives-read-only.rules
+    dest: /etc/udev/rules.d/90-internal-drives-read-only.rules
+    mode: "0644"
+  notify: reload udev rules

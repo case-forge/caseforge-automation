@@ -1,0 +1,4 @@
+listen_addresses = '127.0.0.1{{ (',' + postgres_tailnet_ip) if postgres_tailnet_ip else '' }}'
+port = {{ postgres_port }}
+
+password_encryption = scram-sha-256

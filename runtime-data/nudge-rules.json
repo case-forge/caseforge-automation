@@ -1,0 +1,154 @@
+{
+  "schema": "caseforge.nudge-rules.v1",
+  "lookback_days": 45,
+  "max_new_per_run": 10,
+  "exclude_matters": [],
+  "court_chaser_auto": {
+    "enabled": true,
+    "go_live": "2026-11-18",
+    "working_days": 7,
+    "max_late_working_days": 3,
+    "chaser": "application_not_answered",
+    "mail_class": "court-application-chaser"
+  },
+  "unsigned_reminders": {
+    "enabled": true,
+    "go_live": "",
+    "stage_days": [2, 4],
+    "alert_after_days": 1,
+    "max_late_days": 2,
+    "mail_class": "unsigned-signature-reminder",
+    "texts": {
+      "client_docs": [
+        {
+          "subject": "Please sign the documents I sent you",
+          "body": "Dear [first name],\n\nI sent you our client documents to sign on [date] and I have not yet received your signature. Please could you sign them using the link in that email? If you cannot find it, reply to this email and I will send it again."
+        },
+        {
+          "subject": "A reminder to sign the documents I sent you",
+          "body": "Dear [first name],\n\nThis is a gentle reminder that the client documents I sent you on [date] are still waiting for your signature. We need them signed before we can take the next step for you. Please could you sign them using the link in that email? If you cannot find it, or something is stopping you, reply to this email and we will help."
+        }
+      ],
+      "witness_statement": [
+        {
+          "subject": "Please sign your witness statement",
+          "body": "Dear [first name],\n\nI sent you your witness statement to sign on [date] and I have not yet received your signature. Please could you sign it using the link in that email? If you cannot find it, reply to this email and I will send it again."
+        },
+        {
+          "subject": "A reminder to sign your witness statement",
+          "body": "Dear [first name],\n\nThis is a gentle reminder that your witness statement, which I sent you on [date], is still waiting for your signature. We need it signed before we can take the next step for you. Please could you sign it using the link in that email? If you cannot find it, or you would like anything changed, reply to this email and we will help."
+        }
+      ]
+    }
+  },
+  "rules": [
+    {
+      "id": "signing_ccl",
+      "kind": "envelope",
+      "working_days": 5,
+      "title_keywords": [
+        "care letter",
+        "ccl",
+        "terms of business"
+      ],
+      "label": "client care letter pack sent for signing, not signed yet",
+      "detail": "The pack is a Documenso envelope that has been sent and is still waiting for the client's signature.",
+      "closes_when": "the envelope is signed, cancelled or deleted in Documenso",
+      "chase_subject": "Your client care letter: please sign",
+      "chase_body": "Dear [first name],\n\nI sent you our client care letter and terms of business on [date] to sign. I have not yet received your signature. Please could you sign it using the link in that email? If you cannot find it, tell me and I will send it again.\n\nKind regards,\n[your name]",
+      "enabled": false
+    },
+    {
+      "id": "signing_loa_ws",
+      "kind": "envelope",
+      "working_days": 3,
+      "title_keywords": [
+        "authority",
+        "loa",
+        "witness",
+        "statement"
+      ],
+      "label": "Letter of Authority or witness statement sent for signing, not signed yet",
+      "detail": "The document is a Documenso envelope that has been sent and is still waiting for the client's signature.",
+      "closes_when": "the envelope is signed, cancelled or deleted in Documenso",
+      "chase_subject": "Please sign the document I sent you",
+      "chase_body": "Dear [first name],\n\nI sent you a document to sign on [date] and I have not yet received your signature. Please could you sign it using the link in that email? If you cannot find it, tell me and I will send it again.\n\nKind regards,\n[your name]",
+      "chase_subject_client_docs": "Please sign the documents I sent you",
+      "chase_body_client_docs": "Dear [first name],\n\nI sent you our client documents to sign on [date] and I have not yet received your signature. Please could you sign them using the link in that email? If you cannot find it, tell me and I will send it again.",
+      "chase_subject_witness_statement": "Please sign your witness statement",
+      "chase_body_witness_statement": "Dear [first name],\n\nI sent you your witness statement to sign on [date] and I have not yet received your signature. Please could you sign it using the link in that email? If you cannot find it, tell me and I will send it again.",
+      "closed_note": "Replaced by the Nudge button on the Status board",
+      "enabled": false
+    },
+    {
+      "id": "statement_first_overdue",
+      "kind": "statement_first",
+      "working_days": 3,
+      "label": "client's first witness statement not drafted yet",
+      "detail": "The client is waiting on us. Case flow opened the matter and no statement email has been drafted or recorded. Check Case flow {step:statement} (the client's own statement) and {step:email} (the statement email).",
+      "closes_when": "the statement email is drafted in Case flow or recorded as done outside it, or the client replies"
+    },
+    {
+      "id": "statement_unanswered",
+      "kind": "statement_reply",
+      "working_days": 5,
+      "label": "witness statement sent to the client, no approval or amendment yet",
+      "detail": "The date is when Case flow drafted the statement email, because Case flow never sends it. Check the email was actually sent.",
+      "closes_when": "the client's approval or amendment is recorded on the matter",
+      "chase_subject": "Your witness statement: have you had a chance to read it?",
+      "chase_body": "Dear [first name],\n\nI wrote to you on [date] with your draft witness statement. I have not yet heard whether you are happy with it or whether you would like anything changed. Please could you let me know, as we need your approval before we can go further.\n\nKind regards,\n[your name]",
+      "closed_note": "Replaced by the Nudge button on the Status board",
+      "enabled": false
+    },
+    {
+      "id": "court_reply_overdue",
+      "kind": "court_reply",
+      "working_days": 5,
+      "calendar_days": 7,
+      "draft_chaser": "application_not_answered",
+      "label": "without-notice application with the court, no reply from the court within 7 days",
+      "detail": "The date is when Case flow {step:court_email} saw the application reach the court: the court email in Sent Items, or the day it was marked filed through the portal (gh#343).",
+      "closes_when": "the court's reply is recorded on the matter (Case flow {step:court_reply})",
+      "chase_subject": "Without notice application: [applicant] v [respondent], sent [date]",
+      "chase_body": "Dear Sir or Madam,\n\nWe sent the court a without notice application on behalf of our client, [applicant], on [date] (court reference [reference, if issued]). We have not yet received the court's response. Please could you let us know whether the application has been considered, and when we can expect an order or a hearing date?\n\nKind regards,\n[your name]\n[firm name]"
+    },
+    {
+      "id": "final_hearing_bundle",
+      "kind": "final_hearing_bundle",
+      "working_days": 5,
+      "label": "final hearing within five working days: bundle to print and post",
+      "detail": "Two printed copies of the bundle go by next-day delivery. The to-do is due the last day they can be posted.",
+      "closes_when": "the hearing passes, is vacated or cancelled, or is moved more than five working days away"
+    },
+    {
+      "id": "draft_unsent",
+      "kind": "draft_unsent",
+      "working_days": 1,
+      "calendar_days": 1,
+      "label": "a Case flow draft is waiting to be sent",
+      "detail": "The ball is with the firm: the draft is made and only sending it clears this.",
+      "closes_when": "the email is sent"
+    },
+    {
+      "id": "order_after_hearing",
+      "kind": "after_hearing",
+      "working_days": 5,
+      "calendar_days": 7,
+      "draft_chaser": "order_not_received",
+      "label": "hearing held, no order from the court after 7 days",
+      "detail": "The date is the last hearing. Any email from the court since closes this.",
+      "closes_when": "the court emails the matter after the hearing"
+    },
+    {
+      "id": "hearing_date_after_hearing",
+      "kind": "after_hearing",
+      "working_days": 5,
+      "calendar_days": 10,
+      "no_new_hearing": true,
+      "draft_chaser": "hearing_date",
+      "label": "hearing held, no new hearing booked after 10 days",
+      "detail": "The date is the last hearing. Not made after a final hearing.",
+      "closes_when": "another hearing is booked"
+    }
+  ]
+}

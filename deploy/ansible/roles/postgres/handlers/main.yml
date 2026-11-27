@@ -1,0 +1,17 @@
+---
+- name: Restart native postgres
+  ansible.builtin.systemd:
+    name: "{{ postgres_native_service }}"
+    state: restarted
+  when: postgres_mode == 'native'
+
+- name: Reload native postgres
+  ansible.builtin.systemd:
+    name: "{{ postgres_native_service }}"
+    state: reloaded
+  when: postgres_mode == 'native'
+
+- name: Reload systemd for postgres
+  ansible.builtin.systemd:
+    daemon_reload: true
+  when: postgres_mode == 'native'

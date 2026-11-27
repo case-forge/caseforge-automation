@@ -1,0 +1,89 @@
+
+profile_version: 1
+
+firm_name: Example Family Law LLP
+
+firm_short_name: Example Family Law
+
+mail_domains:
+  - example.org
+
+web_domains:
+  - example.net
+
+workers:
+  - Alex
+  - Sam
+  - Jordan
+
+legal_aid_worker: Sam
+
+folder_books:
+  - Clients - Alex
+  - Clients - Sam
+  - Clients - Jordan
+  - Clients - Protective-Orders
+
+worker_books:
+  Alex: Clients - Alex
+  Sam: Clients - Sam
+  Jordan: Clients - Jordan
+
+shared_books:
+  - Clients - Protective-Orders
+
+auto_books:
+  - Alex
+  - Jordan
+
+casework_books:
+  - Alex
+  - Sam
+  - Jordan
+
+protective_orders_book: Clients - Protective-Orders
+
+common_documents_book: Stock Documents
+unsorted_attendance_book: Temporary Saved Docs
+
+library_root: Shared Documents/Clients Live Files - Example
+
+closed_library_root: Shared Documents/Clients Closed Files - Example
+
+onedrive_root_name: OneDrive - Example Family Law LLP
+
+sharepoint_site_id: example.sharepoint.com,00000000-0000-4000-8000-000000000001,00000000-0000-4000-8000-000000000002
+
+key_vault_name: example-firm-kv
+
+access_team_domain: example.cloudflareaccess.com
+
+hostnames:
+  crm: example.net
+  chat: chat.example.net
+  sign: sign.example.net
+
+legal_rep_name: Alex Example
+legal_rep_firm: Example Family Law LLP
+legal_rep_address_building: 1 Example Street
+legal_rep_address_line2: ""
+legal_rep_address_town: Exampletown
+legal_rep_address_county: ""
+legal_rep_postcode: ZZ99 9ZZ
+legal_rep_dx: ""
+legal_rep_phone: 01632 960000
+legal_rep_email: alex@example.org
+statement_of_truth_signer: Alex Example
+statement_of_truth_firm: EXAMPLE FAMILY LAW LLP
+statement_of_truth_position: Solicitor
+
+pba_number: PBA 0000000
+local_model_url: http://localhost:8080
+
+backup_folder: Shared Documents/Backups
+
+office_street: 1 Example Street
+office_town: Exampletown
+office_postcode: ZZ99 9ZZ
+
+email_heading: Example Family Law LLP

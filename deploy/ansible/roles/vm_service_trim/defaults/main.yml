@@ -1,0 +1,16 @@
+---
+vm_service_trim_enabled: true
+
+vm_service_trim_common:
+  - fwupd-refresh.timer
+  - fwupd-refresh.service
+  - fwupd.service
+  - ModemManager.service
+  - udisks2.service
+  - apport.service
+  - apport-forward.socket
+  - apport-autoreport.timer
+  - pollinate.service
+  - lxd-installer.socket
+
+vm_service_trim_checked_hardware: []

@@ -1,0 +1,18 @@
+---
+cloudflared_enabled: false
+
+cloudflared_service_name: cloudflared
+
+cloudflared_env_dir: /etc/cloudflared
+cloudflared_env_file: /etc/cloudflared/tunnel.env
+
+cloudflared_apt_key_url: https://pkg.cloudflare.com/cloudflare-main.gpg
+cloudflared_apt_key_path: /usr/share/keyrings/cloudflare-main.gpg
+cloudflared_apt_repo: "deb [signed-by=/usr/share/keyrings/cloudflare-main.gpg] https://pkg.cloudflare.com/cloudflared any main"
+cloudflared_apt_sources_file: cloudflared
+
+cloudflared_legacy_container_name: caseforge-tunnel
+
+cloudflared_metrics_bind: "127.0.0.1:20242"
+
+cloudflared_tunnel_token: ""

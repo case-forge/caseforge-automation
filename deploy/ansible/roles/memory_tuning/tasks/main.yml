@@ -1,0 +1,201 @@
+---
+
+- name: Detect WSL
+  ansible.builtin.set_fact:
+    memory_tuning_is_wsl: "{{ ansible_kernel is search('microsoft', ignorecase=true) }}"
+  tags: [earlyoom, swap, memory-pressure]
+
+- name: Swap, earlyoom, zram, journald, watchdog (skipped under WSL)
+  when: not memory_tuning_is_wsl
+  block:
+    - name: Check for existing active swap
+      ansible.builtin.command: swapon --show=NAME --noheadings
+      register: memory_tuning_existing_swap
+      changed_when: false
+      check_mode: false
+
+    - name: Compute swapfile size capped at 1/4 of the filesystem (owner instruction 2026-08-18)
+      ansible.builtin.set_fact:
+        memory_tuning_swap_avail_mb: "{{ (ansible_mounts | selectattr('mount', 'equalto', '/') | map(attribute='size_available') | first | int) // (1024*1024) }}"
+      when: memory_tuning_existing_swap.stdout == ""
+
+    - name: Cap requested swapfile size to 1/4 of free disk
+      ansible.builtin.set_fact:
+        memory_tuning_swap_size_mb: "{{ [memory_tuning_swapfile_size_mb | int, (memory_tuning_swap_avail_mb | int // 4)] | min }}"
+      when: memory_tuning_existing_swap.stdout == ""
+
+    - name: "Create + activate swapfile (idempotent via creates:, same shape as bootstrap.sh's ensure_swapfile)"
+      when:
+        - memory_tuning_existing_swap.stdout == ""
+        - memory_tuning_swap_size_mb | int >= 1024
+      block:
+        - name: Allocate swapfile
+          ansible.builtin.command:
+            cmd: "fallocate -l {{ memory_tuning_swap_size_mb }}M {{ memory_tuning_swapfile_path }}"
+            creates: "{{ memory_tuning_swapfile_path }}"
+        - name: Set swapfile permissions
+          ansible.builtin.file:
+            path: "{{ memory_tuning_swapfile_path }}"
+            mode: "0600"
+        - name: mkswap
+          ansible.builtin.command:
+            cmd: "mkswap {{ memory_tuning_swapfile_path }}"
+        - name: swapon
+          ansible.builtin.command:
+            cmd: "swapon {{ memory_tuning_swapfile_path }}"
+        - name: Persist in fstab
+          ansible.posix.mount:
+            path: none
+            src: "{{ memory_tuning_swapfile_path }}"
+            fstype: swap
+            opts: sw
+            state: present
+
+    - name: Install earlyoom
+      ansible.builtin.apt:
+        name: earlyoom
+        state: present
+
+    - name: Steer earlyoom away from the database, tunnel, Docker, SSH and Tailscale
+      ansible.builtin.lineinfile:
+        path: /etc/default/earlyoom
+        regexp: '^EARLYOOM_ARGS='
+        line: 'EARLYOOM_ARGS="-r 3600 --avoid={{ memory_tuning_earlyoom_avoid }}"'
+        create: true
+        owner: root
+        group: root
+        mode: "0644"
+      notify: restart earlyoom
+      tags: [earlyoom]
+
+    - name: Enable earlyoom.service
+      ansible.builtin.systemd_service:
+        name: earlyoom
+        enabled: true
+        state: started
+
+    - name: Set vm.swappiness=10 (root cause of the 2026-07-30 Hetzner OOM livelock)
+      ansible.posix.sysctl:
+        name: vm.swappiness
+        value: "10"
+        sysctl_file: /etc/sysctl.d/99-caseforge-swappiness.conf
+        state: present
+        reload: true
+
+    - name: Ensure zram kernel module package present
+      ansible.builtin.apt:
+        name: "linux-modules-extra-{{ ansible_kernel }}"
+        state: present
+      failed_when: false
+
+    - name: Install systemd-zram-generator
+      ansible.builtin.apt:
+        name: systemd-zram-generator
+        state: present
+
+    - name: Configure zram (mirrors RAM, capped at 16GB -- owner instruction 2026-08-18)
+      ansible.builtin.copy:
+        dest: /etc/systemd/zram-generator.conf
+        content: |
+          [zram0]
+          zram-size = min(ram, 16384)
+          compression-algorithm = zstd
+        mode: "0644"
+      notify: reload systemd and start zram
+
+    - name: Ensure /etc/systemd/journald.conf.d exists (copy doesn't create parent dirs, found via real apply on a helper box -- a fresh box never had a journald drop-in before)
+      ansible.builtin.file:
+        path: /etc/systemd/journald.conf.d
+        state: directory
+        mode: "0755"
+
+    - name: Cap journald size (SystemMaxUse=300M, RuntimeMaxUse=100M)
+      ansible.builtin.copy:
+        dest: /etc/systemd/journald.conf.d/caseforge-size-cap.conf
+        content: |
+          [Journal]
+          SystemMaxUse=300M
+          RuntimeMaxUse=100M
+        mode: "0644"
+      notify: restart journald
+
+    - name: Load softdog kernel module
+      community.general.modprobe:
+        name: softdog
+        state: present
+        persistent: present
+      failed_when: false
+      when: memory_tuning_watchdog | bool
+
+    - name: Enable systemd hardware watchdog (auto-reboot after 60s of PID 1 unresponsive)
+      ansible.builtin.lineinfile:
+        path: /etc/systemd/system.conf
+        regexp: '^#?RuntimeWatchdogSec='
+        line: "RuntimeWatchdogSec=60s"
+      notify: daemon-reexec
+      when: memory_tuning_watchdog | bool
+
+    - name: Age out RAM-backed scratch in /tmp (pytest, offline test trees, node compile cache, agent session scratch)
+      ansible.builtin.copy:
+        dest: /etc/tmpfiles.d/caseforge-tmp-clean.conf
+        content: |
+          e /tmp/pytest-of-* - - - 1d
+          e /tmp/cf-offline-* - - - 1d
+          e /tmp/node-compile-cache - - - 2d
+          e /tmp/claude-*/* - - - 7d
+        mode: "0644"
+
+    - name: Assert the configured /tmp size is within the RAM-backed ceiling
+      ansible.builtin.assert:
+        that:
+          - memory_tuning_tmp_size_mb | int > 0
+          - memory_tuning_tmp_size_mb | int <= memory_tuning_tmp_size_max_mb | int
+        fail_msg: "/tmp is RAM-backed: memory_tuning_tmp_size_mb must be at most {{ memory_tuning_tmp_size_max_mb }} (docs/box-capacity.md)"
+
+    - name: Cap /tmp (tmpfs, RAM-backed) at {{ memory_tuning_tmp_size }}
+      ansible.posix.mount:
+        path: /tmp
+        src: tmpfs
+        fstype: tmpfs
+        opts: "mode=1777,strictatime,nosuid,nodev,size={{ memory_tuning_tmp_size }},nr_inodes=1048576"
+        state: present
+      register: memory_tuning_tmp_mount
+      when: ansible_facts['mounts'] | selectattr('mount', 'equalto', '/tmp') | selectattr('fstype', 'equalto', 'tmpfs') | list | length > 0
+
+    - name: Keep a tmpfs /tmp line out of fstab where /tmp is on disk
+      ansible.builtin.lineinfile:
+        path: /etc/fstab
+        regexp: '^tmpfs\s+/tmp\s+tmpfs\s'
+        state: absent
+      when: ansible_facts['mounts'] | selectattr('mount', 'equalto', '/tmp') | list | length == 0
+
+    - name: Cap /dev/shm (tmpfs, RAM-backed) at {{ memory_tuning_shm_size }}
+      ansible.posix.mount:
+        path: /dev/shm
+        src: tmpfs
+        fstype: tmpfs
+        opts: "defaults,nosuid,nodev,size={{ memory_tuning_shm_size }}"
+        state: present
+      register: memory_tuning_shm_mount
+
+    - name: Apply the new sizes to the running mounts (a remount keeps open files)
+      ansible.builtin.command: "mount -o remount {{ item }}"
+      loop: "{{ ['/tmp'] * (memory_tuning_tmp_mount is changed | int) + ['/dev/shm'] * (memory_tuning_shm_mount is changed | int) }}"
+      changed_when: true
+
+    - name: Read the size of the mounted /tmp
+      ansible.builtin.command: findmnt -bno SIZE,FSTYPE /tmp
+      register: memory_tuning_tmp_live
+      changed_when: false
+      check_mode: false
+      failed_when: false
+
+    - name: Assert the live /tmp tmpfs is within the ceiling
+      ansible.builtin.assert:
+        that: (memory_tuning_tmp_live.stdout.split()[0] | int) <= (memory_tuning_tmp_size_max_mb | int) * 1048576
+        fail_msg: "/tmp is a tmpfs of {{ memory_tuning_tmp_live.stdout }}, above the {{ memory_tuning_tmp_size_max_mb }} MB ceiling"
+      when:
+        - not ansible_check_mode
+        - memory_tuning_tmp_live.rc == 0
+        - memory_tuning_tmp_live.stdout.split() | length > 1
+        - memory_tuning_tmp_live.stdout.split()[1] == 'tmpfs'

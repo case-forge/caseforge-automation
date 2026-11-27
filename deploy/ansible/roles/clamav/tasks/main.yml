@@ -1,0 +1,75 @@
+---
+
+- name: Install clamd and the signature updater
+  ansible.builtin.apt:
+    name: [clamdscan, clamav-daemon, clamav-freshclam]
+    state: present
+    install_recommends: false
+
+- name: Check whether the signature databases are already there
+  ansible.builtin.find:
+    paths: /var/lib/clamav
+    patterns: ["main.c*d", "daily.c*d"]
+  register: clamav_databases
+
+- name: Fetch the signature databases once, before the daemon first starts
+  when: clamav_databases.files | length < 2
+  block:
+    - name: Stop the updater service
+      ansible.builtin.systemd_service:
+        name: clamav-freshclam
+        state: stopped
+    - name: Run freshclam once
+      ansible.builtin.command: freshclam
+      changed_when: true
+
+- name: Write the clamd config
+  ansible.builtin.template:
+    src: clamd.conf.j2
+    dest: /etc/clamav/clamd.conf
+    mode: "0644"
+  register: clamav_conf
+
+- name: Make the systemd drop-in directory
+  ansible.builtin.file:
+    path: /etc/systemd/system/clamav-daemon.service.d
+    state: directory
+    mode: "0755"
+
+- name: Cap clamd's memory
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/clamav-daemon.service.d/10-memory.conf
+    mode: "0644"
+    content: |
+      [Service]
+      MemoryMax={{ clamav_memory_max }}
+  register: clamav_dropin
+
+- name: Reload systemd when the drop-in changed
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+  when: clamav_dropin.changed
+
+- name: Enable and start the updater
+  ansible.builtin.systemd_service:
+    name: clamav-freshclam
+    enabled: true
+    state: started
+
+- name: Enable and start clamd, restarting it when its config or limits changed
+  ansible.builtin.systemd_service:
+    name: clamav-daemon
+    enabled: true
+    state: "{{ 'restarted' if (clamav_conf.changed or clamav_dropin.changed) else 'started' }}"
+
+- name: Wait until clamd answers on its socket
+  ansible.builtin.command: clamdscan --ping 30:2
+  register: clamav_ping
+  changed_when: false
+  check_mode: false
+
+- name: "[caseforge] clamav"
+  ansible.builtin.debug:
+    msg: >-
+      [caseforge] clamav: clamd answers on /var/run/clamav/clamd.ctl (MemoryMax={{ clamav_memory_max }}).
+      Signatures update through clamav-freshclam. tools/malware_scan.py scans Graph downloads through it.

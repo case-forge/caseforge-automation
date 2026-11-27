@@ -1,0 +1,45 @@
+[Unit]
+Description=Restic backup of durable local state to pCloud (via rclone, OAuth)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+Environment=RESTIC_PASSWORD_FILE={{ checkout_owner_home }}/.restic-password
+Environment=HOME={{ checkout_owner_home }}
+ExecStart=/usr/bin/restic -r rclone:pcloud:Backups/{{ restic_repo_name | default('caseforge-automation-%H') }} backup \
+    {{ checkout_owner_home }} \
+{% if luks_data_volume_device | default('') | length > 0 and luks_data_volume_link_telemetry | default(true) | bool %}
+    {{ luks_data_volume_mount_path | default('/mnt/encrypted-data') }}/telemetry \
+{% endif %}
+    --exclude {{ checkout_owner_home }}/.steam \
+    --exclude {{ checkout_owner_home }}/.steampath \
+    --exclude {{ checkout_owner_home }}/.steampid \
+    --exclude {{ checkout_owner_home }}/.vscode \
+    --exclude {{ checkout_owner_home }}/.vscode-server \
+    --exclude {{ checkout_owner_home }}/.codex \
+    --exclude {{ checkout_owner_home }}/.copilot \
+    --exclude {{ checkout_owner_home }}/.cursor \
+    --exclude {{ checkout_owner_home }}/.opencode \
+    --exclude {{ checkout_owner_home }}/.gemini \
+    --exclude {{ checkout_owner_home }}/.bun \
+    --exclude {{ checkout_owner_home }}/.npm \
+    --exclude {{ checkout_owner_home }}/.cache \
+    --exclude {{ checkout_owner_home }}/.local \
+    --exclude {{ checkout_owner_home }}/.dotnet \
+    --exclude {{ checkout_owner_home }}/.config/opencode \
+    --exclude '{{ checkout_owner_home }}/.config/opencode.bak-*' \
+    --exclude {{ checkout_owner_home }}/.config/google-chrome \
+    --exclude {{ checkout_owner_home }}/.config/google-chrome-for-testing \
+    --exclude '{{ checkout_owner_home }}/actions-runner-*' \
+    --exclude {{ checkout_owner_home }}/pCloud \
+    --exclude {{ repo_checkout_dir }}/tmp \
+    --exclude {{ repo_checkout_dir }}/artifacts \
+    --exclude {{ repo_checkout_dir }}/.pytest_cache \
+    --exclude {{ repo_checkout_dir }}/.aider.tags.cache.v4 \
+    --exclude-caches \
+    --one-file-system
+ExecStopPost=/usr/bin/python3 {{ repo_checkout_dir }}/tools/monitoring/record_unit_result.py restic-last-run.json
+ExecStopPost=-/usr/bin/restic -r rclone:pcloud:Backups/{{ restic_repo_name | default('caseforge-automation-%H') }} forget --keep-daily 7 --keep-weekly 4 --keep-monthly 6 --prune
+StandardOutput=append:{{ repo_checkout_dir }}/telemetry/restic-backup.log
+StandardError=append:{{ repo_checkout_dir }}/telemetry/restic-backup.log

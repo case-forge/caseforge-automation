@@ -1,0 +1,33 @@
+---
+- name: Clean-room VM host
+  when: clean_room_host_enabled | bool
+  block:
+    - name: Hardware virtualisation is present
+      ansible.builtin.stat:
+        path: /dev/kvm
+      register: clean_room_kvm
+
+    - name: Stop here when there is no /dev/kvm
+      ansible.builtin.assert:
+        that: clean_room_kvm.stat.exists
+        fail_msg: "/dev/kvm is missing: this machine cannot run KVM virtual machines (a cloud VM without nested virtualisation, or it is off in the firmware)."
+
+    - name: KVM, libvirt and the image tools
+      ansible.builtin.apt:
+        name: "{{ clean_room_host_packages }}"
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: libvirt is running and starts at boot
+      ansible.builtin.systemd:
+        name: libvirtd
+        state: started
+        enabled: true
+
+    - name: The login user may manage VMs
+      ansible.builtin.user:
+        name: "{{ ansible_user }}"
+        groups: "{{ clean_room_host_groups }}"
+        append: true
+      when: ansible_user != 'root'

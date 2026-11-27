@@ -1,0 +1,53 @@
+---
+- name: "[caseforge] egress_watch skipped for this box"
+  ansible.builtin.debug:
+    msg: "[caseforge] Skipping the egress watch: egress_watch_enabled is not set for this host."
+  when: not (egress_watch_enabled | bool)
+
+- block:
+    - name: conntrack tool (reads the kernel's connection table, Docker traffic included)
+      ansible.builtin.apt:
+        name: conntrack
+        state: present
+
+    - name: Count bytes per connection
+      ansible.posix.sysctl:
+        name: net.netfilter.nf_conntrack_acct
+        value: "1"
+        sysctl_file: /etc/sysctl.d/99-caseforge-conntrack-acct.conf
+        state: present
+        reload: true
+
+    - name: Program folder
+      ansible.builtin.file:
+        path: "{{ egress_watch_app_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Copy the one script
+      ansible.builtin.copy:
+        src: "{{ egress_watch_source_dir }}/egress_watch.py"
+        dest: "{{ egress_watch_app_dir }}/egress_watch.py"
+        remote_src: true
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Install the units
+      ansible.builtin.copy:
+        src: "{{ repo_checkout_dir }}/deploy/systemd/{{ item }}"
+        dest: "/etc/systemd/system/{{ item }}"
+        remote_src: true
+        mode: "0644"
+      loop: "{{ egress_watch_units }}"
+
+    - name: Enable the timer
+      ansible.builtin.systemd_service:
+        name: ngene-egress-watch.timer
+        enabled: true
+        state: started
+        daemon_reload: true
+  when: egress_watch_enabled | bool
+  ignore_errors: "{{ ansible_check_mode }}"

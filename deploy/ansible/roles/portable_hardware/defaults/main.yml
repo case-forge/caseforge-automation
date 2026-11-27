@@ -1,0 +1,6 @@
+---
+portable_hardware_retired_fstab_sources:
+  - "UUID=be2717b8-81ab-4401-8423-f74cffb22d0a"
+  - "UUID=38a83140-c87b-4db3-b037-884b8587f603"
+  - "UUID=fb9e00d6-5fe0-4b12-b527-9fc201dda2f6"
+  - "/mnt/cf-swap-ci/swapfile"

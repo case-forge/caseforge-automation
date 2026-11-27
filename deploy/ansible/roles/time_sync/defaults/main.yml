@@ -1,0 +1,4 @@
+---
+time_sync_timezone: Etc/UTC
+
+time_sync_require_synchronised: true

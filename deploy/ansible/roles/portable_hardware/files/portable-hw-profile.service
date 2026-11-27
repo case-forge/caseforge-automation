@@ -1,0 +1,11 @@
+[Unit]
+Description=Load the kernel modules for the machine this root is running on (by DMI)
+After=systemd-modules-load.service local-fs.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/portable-hw-profile
+
+[Install]
+WantedBy=multi-user.target

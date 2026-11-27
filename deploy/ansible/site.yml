@@ -1,0 +1,93 @@
+---
+- name: Provision a CaseForge box
+  hosts: linux_ssh_targets
+  become: true
+
+  pre_tasks:
+    - name: CaseForge banner
+      ansible.builtin.debug:
+        msg: |2
+
+           ██████╗ █████╗ ███████╗███████╗███████╗ ██████╗ ██████╗  ██████╗ ███████╗
+          ██╔════╝██╔══██╗██╔════╝██╔════╝██╔════╝██╔═══██╗██╔══██╗██╔════╝ ██╔════╝
+          ██║     ███████║███████╗█████╗  █████╗  ██║   ██║██████╔╝██║  ███╗█████╗
+          ██║     ██╔══██║╚════██║██╔══╝  ██╔══╝  ██║   ██║██╔══██╗██║   ██║██╔══╝
+          ╚██████╗██║  ██║███████║███████╗██║     ╚██████╔╝██║  ██║╚██████╔╝███████╗
+           ╚═════╝╚═╝  ╚═╝╚══════╝╚══════╝╚═╝      ╚═════╝ ╚═╝  ╚═╝ ╚═════╝ ╚══════╝
+
+            Caseworker Automation Software
+      tags: [always]
+
+    - name: "[caseforge] dev tooling"
+      ansible.builtin.debug:
+        msg: "[caseforge] dev_tooling_enabled={{ dev_tooling_enabled }}"
+      tags: [always]
+
+  roles:
+    - role: base_packages
+      tags: [system-packages, preserve-hostname]
+    - role: time_sync
+      tags: [time-sync]
+    - role: laptop_power
+      tags: [laptop-power]
+      when: "'physical_or_personal' in group_names"
+    - role: memory_tuning
+      tags: [swap, memory-pressure]
+    - role: binary_tools
+      tags: [zellij, zellij-config, zellij-autoattach, cloudflared, rclone, azure-cli, pass-cli, git-cliff, opentofu]
+    - role: clean_room_host
+      tags: [clean-room-host]
+      when: clean_room_host_enabled | default(false) | bool
+    - role: docker
+      tags: [docker, docker-maintenance]
+    - role: node_and_claude_code
+      tags: [node, ai-cli-tools]
+    - role: playwright_chromium
+      tags: [playwright]
+      when: dev_tooling_enabled | bool
+    - role: azure_functions
+      tags: [azure-functions]
+      when: dev_tooling_enabled | bool
+    - role: tailscale
+      tags: [tailscale]
+    - role: mothership_ssh_trust
+      tags: [mothership-key]
+    - role: repo_checkout
+      tags: [repository]
+    - role: caseforge_cli_tools
+      tags: [caseforge-cli-tools]
+    - role: secrets_bootstrap
+      tags: [azure-credentials]
+    - role: restic_backup
+      tags: [restic-backup]
+    - role: luks_data_volume
+      tags: [postgres, luks]
+      when: (postgres_enabled | default(false) | bool) or (qdrant_use_luks_storage | default(false) | bool)
+    - role: postgres
+      tags: [postgres]
+      when: postgres_enabled | default(false) | bool
+    - role: qdrant
+      tags: [qdrant]
+      when: qdrant_enabled | default(false) | bool
+    - role: cloudflared
+      tags: [cloudflared-connector]
+    - role: feature_flags
+      tags: [feature-flags]
+      when: feature_flags_enabled | bool
+    - role: session_reapers
+      tags: [session-reapers]
+    - role: claude_tools
+      tags: [claude-tools]
+    - role: systemd_services
+      tags: [systemd-services]
+    - role: cron_jobs
+      tags: [cron-jobs]
+
+  post_tasks:
+    - name: "[caseforge] closing summary"
+      ansible.builtin.debug:
+        msg:
+          - "[caseforge] === Provision complete ==="
+          - "[caseforge] dev tools: {{ dev_tooling_enabled }}"
+          - "[caseforge] host     : {{ inventory_hostname }}"
+      tags: [always]

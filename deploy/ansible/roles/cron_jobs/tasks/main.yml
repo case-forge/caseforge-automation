@@ -1,0 +1,45 @@
+---
+
+- name: Install scheduled jobs
+  when: cron_jobs_enabled | bool
+  block:
+    - name: Set the crontab timezone
+      ansible.builtin.cron:
+        name: CRON_TZ
+        env: true
+        value: "{{ cron_jobs_timezone }}"
+        user: "{{ ansible_user_id }}"
+
+    - name: Install scheduled jobs
+      ansible.builtin.cron:
+        name: "{{ item.name }}"
+        minute: "{{ omit if item.special_time is defined else (item.minute | default('*')) }}"
+        hour: "{{ omit if item.special_time is defined else (item.hour | default('*')) }}"
+        weekday: "{{ omit if item.special_time is defined else (item.weekday | default('*')) }}"
+        special_time: "{{ item.special_time | default(omit) }}"
+        job: "cd {{ repo_checkout_dir }} && {{ item.job }}"
+        user: "{{ ansible_user_id }}"
+        state: present
+      loop: "{{ cron_jobs }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+    - name: Read the logrotate template from the checkout
+      ansible.builtin.slurp:
+        src: "{{ repo_checkout_dir }}/tools/caseforge-logrotate.conf"
+      register: cron_jobs_logrotate_template
+
+    - name: Install the cron log rotation
+      ansible.builtin.copy:
+        content: "{{ cron_jobs_logrotate_template.content | b64decode | replace('/home/caseforge/caseforge-automation', repo_checkout_dir) }}"
+        dest: /etc/logrotate.d/caseforge-automation
+        owner: root
+        group: root
+        mode: "0644"
+
+- name: Remove retired scheduled jobs, and every job this box does not run
+  ansible.builtin.cron:
+    name: "{{ item }}"
+    user: "{{ ansible_user_id }}"
+    state: absent
+  loop: "{{ (cron_jobs_retired + ([] if cron_jobs_enabled | bool else cron_jobs_fleet_names)) | unique }}"

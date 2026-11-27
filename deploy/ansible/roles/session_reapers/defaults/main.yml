@@ -1,0 +1,6 @@
+---
+session_reapers_checkout_dir: "{{ checkout_owner_home }}/session-reapers"
+
+session_reapers_ssh_url: "git@github-session-reapers:case-forge/session-reapers.git"
+
+session_reapers_checkout_enabled: "{{ (mosh_reaper_enabled | bool) or (zellij_reaper_enabled | bool) }}"

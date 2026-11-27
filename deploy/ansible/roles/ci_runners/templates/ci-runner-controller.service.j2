@@ -1,0 +1,12 @@
+[Unit]
+Description=Start and stop CI runners to match demand and headroom
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+Environment=GH_CONFIG_DIR={{ ci_runners_home }}/.config/gh
+Environment=HOME=/root
+StateDirectory=ci-runner-controller
+ExecStart=/usr/local/sbin/ci-runner-controller --config /etc/caseforge/runner-controller.json
+TimeoutStartSec=120

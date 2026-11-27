@@ -1,0 +1,231 @@
+---
+
+- name: Hard-fail on non-Ubuntu (bootstrap.sh does the same -- this script leans on Ubuntu-only apt layout)
+  ansible.builtin.assert:
+    that: ansible_distribution == "Ubuntu"
+    fail_msg: >-
+      This role is Ubuntu-only, matching bootstrap.sh's own hard-fail.
+      Detected: {{ ansible_distribution }} {{ ansible_distribution_version }}.
+
+- name: Warn if not a supported Ubuntu version for this tier
+  ansible.builtin.debug:
+    msg: >-
+      Running on Ubuntu {{ ansible_distribution_version }}, not one of the supported
+      {{ base_packages_tier }}-tier versions ({{ base_packages_accepted_ubuntu_versions | join(', ') }}).
+      bootstrap.sh warns and continues here too.
+  when: ansible_distribution_version not in base_packages_accepted_ubuntu_versions
+
+- name: "[caseforge] Compute this box's disk size in GB (root filesystem)"
+  ansible.builtin.set_fact:
+    base_packages_root_disk_gb: >-
+      {{ (ansible_mounts | selectattr('mount', 'equalto', '/') | map(attribute='size_total') | first | int) // (1024*1024*1024) }}
+
+- name: "[caseforge] Warn if below the documented minimum spec for this role"
+  ansible.builtin.debug:
+    msg: >-
+      [caseforge][WARN] This box has {{ ansible_processor_vcpus }} vCPU /
+      {{ ansible_memtotal_mb }} MB RAM / {{ base_packages_root_disk_gb }} GB disk,
+      below the documented minimum for the {{ base_packages_tier }} tier
+      ({{ base_packages_min_vcpus[base_packages_tier] }} vCPU /
+      {{ base_packages_min_ram_mb[base_packages_tier] }} MB /
+      {{ base_packages_min_disk_gb[base_packages_tier] }} GB —
+      see docs/minimum-vm-spec.md). Expect resource contention under real load.
+  vars:
+    base_packages_min_vcpus:
+      dev: "{{ base_packages_min_vcpus_dev }}"
+      production: "{{ base_packages_min_vcpus_production }}"
+    base_packages_min_ram_mb:
+      dev: "{{ base_packages_min_ram_mb_dev }}"
+      production: "{{ base_packages_min_ram_mb_production }}"
+    base_packages_min_disk_gb:
+      dev: "{{ base_packages_min_disk_gb_dev }}"
+      production: "{{ base_packages_min_disk_gb_production }}"
+  when: >-
+    ansible_processor_vcpus < (base_packages_min_vcpus[base_packages_tier] | int)
+    or ansible_memtotal_mb < (base_packages_min_ram_mb[base_packages_tier] | int)
+    or base_packages_root_disk_gb | int < (base_packages_min_disk_gb[base_packages_tier] | int)
+
+- name: Update apt cache, with a mirror fallback if the primary stalls
+  block:
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+      async: 60
+      poll: 5
+  rescue:
+    - name: "[caseforge] Primary mirror stalled -- normalising sources to archive.ubuntu.com"
+      ansible.builtin.replace:
+        path: "{{ item }}"
+        regexp: 'https?://[a-zA-Z0-9.-]*\.ubuntu\.com'
+        replace: 'http://archive.ubuntu.com'
+      loop:
+        - /etc/apt/sources.list
+        - /etc/apt/sources.list.d/ubuntu.sources
+      failed_when: false
+      ignore_errors: true
+
+    - name: Update apt cache (retry after mirror fallback)
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 0
+
+- name: Install base system packages
+  ansible.builtin.apt:
+    name: "{{ base_packages_list }}"
+    state: present
+    install_recommends: false
+
+- name: Check the system word lists are present
+  ansible.builtin.stat:
+    path: "/usr/share/dict/{{ item }}"
+  loop:
+    - british-english
+    - american-english
+  register: base_packages_word_lists
+
+- name: Fail if a system word list is missing after the install
+  ansible.builtin.assert:
+    that: base_packages_word_lists.results | map(attribute='stat.exists') | list == [true, true]
+    fail_msg: "/usr/share/dict/british-english or american-english is missing (wbritish, wamerican)."
+
+- name: Install development tooling packages
+  ansible.builtin.apt:
+    name: "{{ base_packages_dev_list }}"
+    state: present
+    install_recommends: false
+  when: base_packages_tier == 'dev'
+
+- name: Check whether cloud-init is present at all
+  ansible.builtin.stat:
+    path: /etc/cloud/cloud.cfg.d
+  register: base_packages_cloud_init_dir
+
+- name: "Preserve hostname across reboots (cloud-init preserve_hostname: true)"
+  ansible.builtin.copy:
+    dest: /etc/cloud/cloud.cfg.d/99-preserve-hostname.cfg
+    content: "preserve_hostname: true\n"
+    mode: "0644"
+  when: base_packages_cloud_init_dir.stat.exists
+
+- name: Check for the duplicate cloud-init logrotate files
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  loop:
+    - /etc/logrotate.d/cloud-init
+    - /etc/logrotate.d/cloud-init-base
+  register: base_packages_cloud_init_logrotate
+
+- name: Park the duplicate cloud-init-base logrotate file
+  ansible.builtin.command: mv /etc/logrotate.d/cloud-init-base /etc/logrotate.d/cloud-init-base.dpkg-old
+  args:
+    removes: /etc/logrotate.d/cloud-init-base
+  when: base_packages_cloud_init_logrotate.results | map(attribute='stat.exists') | list == [true, true]
+
+
+- name: Unattended security upgrades
+  when: unattended_upgrades_enabled | bool
+  tags: [unattended-upgrades]
+  block:
+    - name: Ensure unattended-upgrades is installed
+      ansible.builtin.apt:
+        name: unattended-upgrades
+        state: present
+        install_recommends: false
+
+    - name: Enable the periodic apt timers explicitly
+      ansible.builtin.copy:
+        dest: /etc/apt/apt.conf.d/20auto-upgrades
+        mode: "0644"
+        content: |
+          APT::Periodic::Update-Package-Lists "1";
+          APT::Periodic::Unattended-Upgrade "1";
+
+    - name: Pin allowed origins to security channels and pin reboot behaviour
+      ansible.builtin.copy:
+        dest: /etc/apt/apt.conf.d/52val-unattended-upgrades
+        mode: "0644"
+        content: |
+          // Managed by Ansible (roles/base_packages). Narrower than Ubuntu's
+          // stock 50unattended-upgrades, which also allows the general
+          // "${distro_id}:${distro_codename}" archive -- i.e. non-security
+          // updates -- on boxes running live casework services.
+          Unattended-Upgrade::Allowed-Origins {
+          {% for origin in unattended_upgrades_origins %}
+              "{{ origin }}";
+          {% endfor %}
+          };
+          Unattended-Upgrade::Automatic-Reboot "{{ 'true' if unattended_upgrades_automatic_reboot else 'false' }}";
+
+    - name: Take the general archive out of Ubuntu's stock allow-list
+      ansible.builtin.replace:
+        path: /etc/apt/apt.conf.d/50unattended-upgrades
+        regexp: '^(\s*)"\$\{distro_id\}:\$\{distro_codename\}";'
+        replace: '\1// "${distro_id}:${distro_codename}";  // off: security-only (Ansible, base_packages)'
+      failed_when: false
+
+    - name: Vendor repositories for the nightly maintenance run only (production)
+      ansible.builtin.copy:
+        dest: /etc/apt/caseforge-nightly-vendor.conf
+        mode: "0644"
+        content: |
+          // Managed by Ansible (roles/base_packages). Read only by the nightly maintenance run.
+          Unattended-Upgrade::Origins-Pattern {
+          {% for origin in unattended_upgrades_nightly_vendor_origins %}
+              "{{ origin }}";
+          {% endfor %}
+          };
+      when: unattended_upgrades_nightly_vendor_origins | length > 0
+
+    - name: Make the needrestart config directory
+      ansible.builtin.file:
+        path: /etc/needrestart/conf.d
+        state: directory
+        mode: "0755"
+
+    - name: Stop needrestart restarting one-shot jobs after an upgrade
+      ansible.builtin.copy:
+        dest: /etc/needrestart/conf.d/50-caseforge-oneshot.conf
+        mode: "0644"
+        content: |
+          {% for unit in lookup('ansible.builtin.fileglob', playbook_dir + '/../systemd/*.service', wantlist=True) | sort %}
+          {% if 'Type=oneshot' in lookup('ansible.builtin.file', unit) %}
+          $nrconf{override_rc}{qr(^{{ unit | basename | regex_escape }}$)} = 0;
+          {% endif %}
+          {% endfor %}
+          1;
+
+    - name: Verify unattended-upgrades accepts the resulting config
+      ansible.builtin.command: unattended-upgrades --dry-run --debug
+      register: unattended_upgrades_check
+      changed_when: false
+      failed_when: unattended_upgrades_check.rc != 0
+      check_mode: false
+
+    - name: "[caseforge] unattended-upgrades"
+      ansible.builtin.debug:
+        msg: >-
+          [caseforge] unattended-upgrades: security-only origins pinned,
+          Automatic-Reboot={{ unattended_upgrades_automatic_reboot }}.
+          Config verified with --dry-run (exit {{ unattended_upgrades_check.rc }}).
+          Kernel updates will install but NOT reboot from here; production's nightly maintenance cron reboots when one is pending, other boxes stay manual.
+
+- name: Ensure /dev/shm/val exists (tmpfs scratch space for startup/monitoring tools)
+  ansible.builtin.file:
+    path: /dev/shm/val
+    state: directory
+    mode: "0700"
+
+- name: Detect a loaded NVIDIA kernel driver
+  ansible.builtin.slurp:
+    src: /proc/driver/nvidia/version
+  register: base_packages_nvidia_version
+  failed_when: false
+
+- name: Install nvidia-utils matching the loaded driver
+  ansible.builtin.apt:
+    name: "nvidia-utils-{{ (base_packages_nvidia_version.content | b64decode) | regex_search('\\s([0-9]{3,})\\.[0-9]+\\.[0-9]+', '\\1') | first }}"
+    state: present
+  when:
+    - base_packages_nvidia_version.content is defined
+    - (base_packages_nvidia_version.content | b64decode) is search('\s[0-9]{3,}\.[0-9]+\.[0-9]+')

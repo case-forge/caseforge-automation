@@ -1,0 +1,2 @@
+
+ALTER TABLE matters ADD COLUMN IF NOT EXISTS order_type_tags TEXT NULL;

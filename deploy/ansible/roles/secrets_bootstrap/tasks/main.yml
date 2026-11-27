@@ -1,0 +1,222 @@
+---
+
+- name: Declare the shared Key Vault cache directory (tmpfs, root only)
+  ansible.builtin.copy:
+    dest: /etc/tmpfiles.d/caseforge-kv.conf
+    content: |
+      d /run/caseforge-kv 0700 root root -
+    mode: "0644"
+  register: secrets_bootstrap_kv_tmpfiles
+
+- name: Create the shared Key Vault cache directory now
+  ansible.builtin.command: systemd-tmpfiles --create /etc/tmpfiles.d/caseforge-kv.conf
+  when: secrets_bootstrap_kv_tmpfiles is changed
+  changed_when: true
+
+- name: Decide whether service-principal auth is configured
+  ansible.builtin.set_fact:
+    secrets_bootstrap_sp_ready: >-
+      {{ (secrets_bootstrap_sp_client_id | length > 0)
+         and (secrets_bootstrap_sp_client_secret | length > 0)
+         and (secrets_bootstrap_sp_tenant_id | length > 0) }}
+  no_log: true
+
+- name: Service-principal seed (headless Key Vault access)
+  when: secrets_bootstrap_sp_ready | bool
+  block:
+    - name: Ensure .secrets directory exists with tight permissions
+      ansible.builtin.file:
+        path: "{{ secrets_bootstrap_sp_env_path | dirname }}"
+        state: directory
+        mode: "0700"
+
+    - name: Write the AZURE_* trio for azure-identity's EnvironmentCredential
+      ansible.builtin.copy:
+        dest: "{{ secrets_bootstrap_sp_env_path }}"
+        mode: "0600"
+        content: |
+          AZURE_CLIENT_ID={{ secrets_bootstrap_sp_client_id }}
+          AZURE_CLIENT_SECRET={{ secrets_bootstrap_sp_client_secret }}
+          AZURE_TENANT_ID={{ secrets_bootstrap_sp_tenant_id }}
+      no_log: true
+
+    - name: Verify the service principal can actually read Key Vault
+      ansible.builtin.command:
+        cmd: >
+          python3 {{ repo_checkout_dir }}/tools/load_kv_secrets.py
+          --vault {{ secrets_bootstrap_vault_name }} --mgmt-vault={{ key_vault_mgmt_name | default('') }} --shell
+      environment:
+        AZURE_CLIENT_ID: "{{ secrets_bootstrap_sp_client_id }}"
+        AZURE_CLIENT_SECRET: "{{ secrets_bootstrap_sp_client_secret }}"
+        AZURE_TENANT_ID: "{{ secrets_bootstrap_sp_tenant_id }}"
+      register: secrets_bootstrap_sp_probe
+      changed_when: false
+      check_mode: false
+      no_log: true
+      become: false
+
+    - name: "[caseforge] service-principal Key Vault access verified"
+      ansible.builtin.debug:
+        msg: "[caseforge] azure auth = service principal (headless), vault={{ secrets_bootstrap_vault_name }}"
+
+    - name: Load Key Vault secrets into .secrets/caseforge-env using the service principal
+      ansible.builtin.shell:
+        cmd: >
+          eval "$(python3 {{ repo_checkout_dir }}/tools/load_kv_secrets.py
+          --vault {{ secrets_bootstrap_vault_name }} --mgmt-vault={{ key_vault_mgmt_name | default('') }} --shell --save)"
+        executable: /bin/bash
+      environment:
+        AZURE_CLIENT_ID: "{{ secrets_bootstrap_sp_client_id }}"
+        AZURE_CLIENT_SECRET: "{{ secrets_bootstrap_sp_client_secret }}"
+        AZURE_TENANT_ID: "{{ secrets_bootstrap_sp_tenant_id }}"
+      changed_when: true
+      no_log: true
+      become: false
+
+- name: Fallback to an existing az login session
+  when: not (secrets_bootstrap_sp_ready | bool)
+  block:
+    - name: Check Azure login state
+      ansible.builtin.command: az account show
+      register: secrets_bootstrap_az_check
+      changed_when: false
+      check_mode: false
+      failed_when: false
+      become: false
+
+    - name: "[caseforge] no service principal configured"
+      ansible.builtin.debug:
+        msg: >-
+          [caseforge] azure auth = {{ 'existing az login session'
+          if secrets_bootstrap_az_check.rc == 0
+          else 'NONE -- Key Vault secrets not loaded. Set secrets_bootstrap_sp_* for headless auth.' }}
+
+    - name: Load Key Vault secrets via the existing tool (skipped if not logged into Azure)
+      ansible.builtin.shell:
+        cmd: >
+          eval "$(python3 {{ repo_checkout_dir }}/tools/load_kv_secrets.py
+          --vault {{ secrets_bootstrap_vault_name }} --mgmt-vault={{ key_vault_mgmt_name | default('') }} --shell --save)"
+        executable: /bin/bash
+      when: secrets_bootstrap_az_check.rc == 0
+      changed_when: true
+      become: false
+
+- name: Read back GRAPH_MAILBOX_UPN from the generated env file
+  ansible.builtin.shell:
+    cmd: >
+      set -a; . {{ repo_checkout_dir }}/.secrets/caseforge-env 2>/dev/null; set +a;
+      printf '%s' "${GRAPH_MAILBOX_UPN:-}"
+    executable: /bin/bash
+  register: secrets_bootstrap_mailbox_upn
+  when: secrets_bootstrap_az_check.rc == 0
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  become: false
+
+- name: Bootstrap email templates from OneDrive (non-fatal)
+  ansible.builtin.shell:
+    cmd: python3 {{ repo_checkout_dir }}/tools/maintenance/bootstrap_templates.py
+  when: (secrets_bootstrap_az_check.rc == 0) and (secrets_bootstrap_mailbox_upn.stdout | default('') | length > 0)
+  changed_when: true
+  failed_when: false
+  become: false
+
+- name: Check whether .secrets/caseforge-env was actually written
+  ansible.builtin.stat:
+    path: "{{ repo_checkout_dir }}/.secrets/caseforge-env"
+  register: secrets_bootstrap_val_env_file
+  when: repo_checkout_enabled | bool
+
+- name: Sync Claude Code's OpenRouter routing flag into .claude/settings.local.json
+  ansible.builtin.command:
+    cmd: python3 {{ repo_checkout_dir }}/tools/model/claude_openrouter_toggle.py sync
+  when: (repo_checkout_enabled | bool) and (secrets_bootstrap_val_env_file.stat.exists | default(false))
+  changed_when: true
+  failed_when: false
+  become: false
+
+
+- name: Read back the Healthchecks ping base from the generated env file
+  ansible.builtin.shell:
+    cmd: >
+      set -a; . {{ repo_checkout_dir }}/.secrets/caseforge-env 2>/dev/null; set +a;
+      printf '%s' "${CASEFORGE_HEALTHCHECKS_PING_BASE:-}"
+    executable: /bin/bash
+  register: secrets_bootstrap_hc_base
+  when: repo_checkout_enabled | bool
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  become: false
+
+- name: Verify the Healthchecks sink actually answers from this box
+  ansible.builtin.uri:
+    url: "{{ secrets_bootstrap_hc_base.stdout }}/ansible-provision-check?create=1"
+    method: GET
+    status_code: [200, 201]
+    timeout: 10
+  register: secrets_bootstrap_hc_probe
+  when: (repo_checkout_enabled | bool) and (secrets_bootstrap_hc_base.stdout | default('') | length > 0)
+  changed_when: false
+  become: false
+
+- name: "[caseforge] monitoring registration"
+  ansible.builtin.debug:
+    msg: >-
+      [caseforge] healthchecks =
+      {{ 'registered, sink answered ' ~ secrets_bootstrap_hc_probe.status
+         if (secrets_bootstrap_hc_probe is defined and secrets_bootstrap_hc_probe is not skipped
+             and secrets_bootstrap_hc_probe.status is defined)
+         else 'NOT CONFIGURED -- this box will run jobs silently and raise no alerts.
+               Add a healthchecks-ping-base secret to ' ~ secrets_bootstrap_vault_name }}
+  when: repo_checkout_enabled | bool
+
+- name: Check whether tools/caseforge-chat/ exists on this box (retired on some, not templated back in)
+  ansible.builtin.stat:
+    path: "{{ repo_checkout_dir }}/tools/caseforge-chat"
+  register: secrets_bootstrap_val_chat_dir
+  when: repo_checkout_enabled | bool
+
+- name: Read back CASEFORGE_CHAT_SECRETS_TOML from the generated env file
+  ansible.builtin.shell:
+    cmd: >
+      set -a; . {{ repo_checkout_dir }}/.secrets/caseforge-env 2>/dev/null; set +a;
+      printf '%s' "${CASEFORGE_CHAT_SECRETS_TOML:-}"
+    executable: /bin/bash
+  register: secrets_bootstrap_val_chat_toml
+  when: (repo_checkout_enabled | bool) and (secrets_bootstrap_val_chat_dir.stat.exists | default(false))
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  become: false
+  no_log: true
+
+- name: Check whether tools/caseforge-chat/.streamlit/secrets.toml already exists
+  ansible.builtin.stat:
+    path: "{{ repo_checkout_dir }}/tools/caseforge-chat/.streamlit/secrets.toml"
+  register: secrets_bootstrap_val_chat_toml_file
+  when: (repo_checkout_enabled | bool) and (secrets_bootstrap_val_chat_dir.stat.exists | default(false))
+
+- name: Restore CaseForge Chat credentials from Key Vault (write-once, never overwrite a hand-edited file)
+  ansible.builtin.copy:
+    dest: "{{ repo_checkout_dir }}/tools/caseforge-chat/.streamlit/secrets.toml"
+    content: "{{ secrets_bootstrap_val_chat_toml.stdout }}\n"
+    mode: "0600"
+  when:
+    - repo_checkout_enabled | bool
+    - secrets_bootstrap_val_chat_dir.stat.exists | default(false)
+    - not secrets_bootstrap_val_chat_toml_file.stat.exists
+    - secrets_bootstrap_val_chat_toml.stdout | default('') | length > 0
+  no_log: true
+
+- name: "[caseforge] CaseForge Chat credentials"
+  ansible.builtin.debug:
+    msg: >-
+      [caseforge] CaseForge Chat credentials =
+      {{ 'tools/caseforge-chat/ retired on this box, nothing to restore' if not (secrets_bootstrap_val_chat_dir.stat.exists | default(false))
+         else ('already present' if (secrets_bootstrap_val_chat_toml_file.stat.exists | default(false))
+         else ('restored from Key Vault' if (secrets_bootstrap_val_chat_toml.stdout | default('') | length > 0)
+         else 'not restored -- no CASEFORGE_CHAT_SECRETS_TOML in Key Vault and no existing secrets.toml.
+               Create a login user manually: python3 tools/vergil_chat/manage_val_chat_users.py add-user <username> --name "<display name>"')) }}
+  when: repo_checkout_enabled | bool

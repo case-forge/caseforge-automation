@@ -1,0 +1,29 @@
+---
+- name: daemon-reload for zram
+  listen: reload systemd and start zram
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+
+- name: start zram0
+  listen: reload systemd and start zram
+  ansible.builtin.systemd_service:
+    name: systemd-zram-setup@zram0.service
+    state: started
+  failed_when: false
+
+- name: restart journald
+  listen: restart journald
+  ansible.builtin.systemd_service:
+    name: systemd-journald
+    state: restarted
+
+- name: daemon-reexec
+  listen: daemon-reexec
+  ansible.builtin.systemd_service:
+    daemon_reexec: true
+
+- name: restart earlyoom
+  listen: restart earlyoom
+  ansible.builtin.systemd_service:
+    name: earlyoom
+    state: restarted

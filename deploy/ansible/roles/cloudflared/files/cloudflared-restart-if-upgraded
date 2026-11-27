@@ -1,0 +1,11 @@
+#!/bin/sh
+set -u
+
+unit="cloudflared.service"
+pid="$(systemctl show --property=MainPID --value "$unit" 2>/dev/null || echo 0)"
+case "$pid" in ''|0) exit 0 ;; esac
+
+if readlink "/proc/$pid/exe" 2>/dev/null | grep -q ' (deleted)$'; then
+    systemctl restart "$unit" || true
+fi
+exit 0

@@ -1,0 +1,14 @@
+---
+caseforge_cli_tools_enabled: true
+
+caseforge_cli_tools:
+  - name: bundletool
+    repo: https://github.com/case-forge/bundletool.git
+    merged_relpath: bundletool
+    entry: scripts/build-cli.mjs
+    standalone_entry: scripts/build-cli.mjs
+  - name: chambers-finder
+    repo: https://github.com/case-forge/chambers-finder.git
+    merged_relpath: chambers-finder-cli
+    entry: cli.mjs
+    standalone_entry: chambers-finder-cli/cli.mjs

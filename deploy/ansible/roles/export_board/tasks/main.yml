@@ -1,0 +1,71 @@
+---
+- name: "[caseforge] export_board skipped for this box"
+  ansible.builtin.debug:
+    msg: "[caseforge] Skipping export-board: export_board_enabled is not set for this host."
+  when: not (export_board_enabled | bool)
+
+- name: Group for the export board service
+  ansible.builtin.group:
+    name: "{{ export_board_group }}"
+    system: true
+  when: export_board_enabled | bool
+
+- name: User for the export board service
+  ansible.builtin.user:
+    name: "{{ export_board_user }}"
+    group: "{{ export_board_group }}"
+    system: true
+    shell: /usr/sbin/nologin
+    create_home: false
+  when: export_board_enabled | bool
+
+- name: Snapshot folder
+  ansible.builtin.file:
+    path: "{{ export_board_data_dir }}"
+    state: directory
+    owner: root
+    group: "{{ export_board_group }}"
+    mode: "0750"
+  when: export_board_enabled | bool
+
+- name: Program folder
+  ansible.builtin.file:
+    path: "{{ export_board_app_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when: export_board_enabled | bool
+
+- name: Copy the web service and its page
+  ansible.builtin.copy:
+    src: "{{ export_board_source_dir }}/{{ item }}"
+    dest: "{{ export_board_app_dir }}/"
+    remote_src: true
+    owner: root
+    group: root
+    mode: preserve
+    directory_mode: "0755"
+  loop:
+    - server.py
+    - static
+  when: export_board_enabled | bool
+
+- name: Settings file for the export board service
+  ansible.builtin.template:
+    src: export-board.env.j2
+    dest: "{{ export_board_env_file }}"
+    owner: root
+    group: "{{ export_board_group }}"
+    mode: "0640"
+  when: export_board_enabled | bool
+
+- name: "[caseforge] export board settings are empty, so the service will refuse to start"
+  ansible.builtin.debug:
+    msg: >-
+      [caseforge] The Cloudflare Access settings are empty: set EXPORT_BOARD_ACCESS_TEAM_DOMAIN, EXPORT_BOARD_ACCESS_AUD and
+      EXPORT_BOARD_ALLOWED_EMAILS and run this role again, then enable caseforge-export-board.service and
+      caseforge-export-board-snapshot.timer. The service never starts without them.
+  when:
+    - export_board_enabled | bool
+    - export_board_access_team_domain == "" or export_board_access_aud == ""

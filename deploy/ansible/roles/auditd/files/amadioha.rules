@@ -1,0 +1,23 @@
+
+-D
+-b 8192
+-f 1
+
+-w /etc/ssh/sshd_config -p wa -k ssh_config
+-w /etc/ssh/sshd_config.d/ -p wa -k ssh_config
+-w /root/.ssh/ -p wa -k ssh_keys
+
+-w /etc/passwd -p wa -k identity
+-w /etc/shadow -p wa -k identity
+-w /etc/group -p wa -k identity
+-w /etc/sudoers -p wa -k sudo_config
+-w /etc/sudoers.d/ -p wa -k sudo_config
+
+-w /etc/systemd/system/ -p wa -k systemd_units
+-w /etc/crontab -p wa -k cron
+-w /etc/cron.d/ -p wa -k cron
+-w /var/spool/cron/ -p wa -k cron
+
+-w /etc/caseforge-canary.env -p rwa -k service_secrets
+
+-a always,exit -F arch=b64 -S execve -F auid>=0 -F auid!=4294967295 -k session_exec

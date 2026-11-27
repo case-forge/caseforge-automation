@@ -1,0 +1,245 @@
+{
+  "schema": "caseforge.portal-courts.v1",
+  "note": "Courts that take C100 and FL401 applications only through the online portal, never by email. Case flow drafts no court email for a matter at one of these; a person files through the portal and marks it filed. 'match' holds the distinctive words of the court's name, matched as whole words in order (so 'hull' is never 'Solihull').",
+  "courts": [
+    {
+      "name": "Aberystwyth",
+      "match": [
+        [
+          "aberystwyth"
+        ]
+      ]
+    },
+    {
+      "name": "Bury St Edmunds",
+      "match": [
+        [
+          "bury",
+          "st",
+          "edmunds"
+        ]
+      ]
+    },
+    {
+      "name": "Carmarthen",
+      "match": [
+        [
+          "carmarthen"
+        ]
+      ]
+    },
+    {
+      "name": "Chelmsford",
+      "match": [
+        [
+          "chelmsford"
+        ]
+      ]
+    },
+    {
+      "name": "Coventry",
+      "match": [
+        [
+          "coventry"
+        ]
+      ]
+    },
+    {
+      "name": "Dudley",
+      "match": [
+        [
+          "dudley"
+        ]
+      ]
+    },
+    {
+      "name": "East London",
+      "match": [
+        [
+          "east",
+          "london"
+        ]
+      ]
+    },
+    {
+      "name": "Exeter",
+      "match": [
+        [
+          "exeter"
+        ]
+      ]
+    },
+    {
+      "name": "Gloucestershire (Gloucester)",
+      "match": [
+        [
+          "gloucestershire"
+        ],
+        [
+          "gloucester"
+        ]
+      ]
+    },
+    {
+      "name": "Grimsby",
+      "match": [
+        [
+          "grimsby"
+        ]
+      ]
+    },
+    {
+      "name": "Haverfordwest",
+      "match": [
+        [
+          "haverfordwest"
+        ]
+      ]
+    },
+    {
+      "name": "Hull (Kingston upon Hull)",
+      "match": [
+        [
+          "hull"
+        ]
+      ]
+    },
+    {
+      "name": "Ipswich",
+      "match": [
+        [
+          "ipswich"
+        ]
+      ]
+    },
+    {
+      "name": "Lincoln",
+      "match": [
+        [
+          "lincoln"
+        ]
+      ]
+    },
+    {
+      "name": "Llanelli",
+      "match": [
+        [
+          "llanelli"
+        ]
+      ]
+    },
+    {
+      "name": "Medway",
+      "match": [
+        [
+          "medway"
+        ]
+      ]
+    },
+    {
+      "name": "Newcastle upon Tyne",
+      "match": [
+        [
+          "newcastle",
+          "upon",
+          "tyne"
+        ],
+        [
+          "newcastle",
+          "civil"
+        ]
+      ]
+    },
+    {
+      "name": "Peterborough",
+      "match": [
+        [
+          "peterborough"
+        ]
+      ]
+    },
+    {
+      "name": "Port Talbot",
+      "match": [
+        [
+          "port",
+          "talbot"
+        ]
+      ]
+    },
+    {
+      "name": "Southampton",
+      "match": [
+        [
+          "southampton"
+        ]
+      ]
+    },
+    {
+      "name": "Southend",
+      "match": [
+        [
+          "southend"
+        ]
+      ]
+    },
+    {
+      "name": "Swansea",
+      "match": [
+        [
+          "swansea"
+        ]
+      ]
+    },
+    {
+      "name": "Telford",
+      "match": [
+        [
+          "telford"
+        ]
+      ]
+    },
+    {
+      "name": "Walsall",
+      "match": [
+        [
+          "walsall"
+        ]
+      ]
+    },
+    {
+      "name": "Wolverhampton",
+      "match": [
+        [
+          "wolverhampton"
+        ]
+      ]
+    }
+  ],
+  "call_first": [
+    {
+      "name": "Birmingham",
+      "match": [
+        [
+          "birmingham"
+        ]
+      ],
+      "phone": "0121 681 3010",
+      "note": "Mon to Fri 9am to 5pm; slots 10:00 to 12:30, at most 3 per firm per day. Then send the application to familyapplications.birmingham.countycourt@justice.gov.uk at least 1 hour before the slot. The court's own email says a paper hearing and no attendance; its guidance sheet says attend 30 minutes early: the court's own email decides."
+    }
+  ],
+  "slow": [
+    {
+      "name": "Stockport",
+      "match": [
+        [
+          "stockport"
+        ]
+      ],
+      "nudge_working_days": 3,
+      "note": "Rarely answers a without-notice application without a nudge."
+    }
+  ],
+  "slow_note": "Courts that rarely respond without a nudge. After nudge_working_days working days with no reply to a without-notice application, the court-reply to-do is made with a suggested chase email (never sent). It stops mattering once the court has given a hearing date and case number. 'match' works as for the portal list.",
+  "call_first_note": "Courts that return a without-notice application unissued unless a hearing slot is booked by phone first. Case flow still drafts the email normally; it only tells a person to call, in the Case flow step and the bell. 'match' works as for the portal list."
+}

@@ -1,0 +1,106 @@
+---
+
+- name: Refuse native install when a qdrant container exists on this box
+  ansible.builtin.command: "docker ps -a --filter name=^/{{ qdrant_container_name }}$ --format {{ '{{.Names}}' }}"
+  register: qdrant_native_container_check
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Abort native install if the container is present (even if stopped)
+  ansible.builtin.fail:
+    msg: >-
+      Refusing native qdrant install: container '{{ qdrant_container_name }}'
+      exists on this box. A native unit and a container on port
+      {{ qdrant_http_port }} contend for the same port and storage -- that
+      combination crash-looped ~52,000 times over two days on 2026-07-24.
+      Remove the container deliberately first, or leave this box on Docker.
+  when:
+    - qdrant_native_container_check.stdout is defined
+    - qdrant_container_name in qdrant_native_container_check.stdout
+
+- name: Ensure qdrant directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - "{{ checkout_owner_home }}/.local/bin"
+    - "{{ checkout_owner_home }}/.local/share/qdrant/storage"
+    - "{{ checkout_owner_home }}/.local/share/qdrant/config"
+
+- name: Check qdrant binary presence
+  ansible.builtin.stat:
+    path: "{{ checkout_owner_home }}/.local/bin/qdrant"
+  register: qdrant_native_binary
+
+- name: Download + install qdrant
+  when: not qdrant_native_binary.stat.exists
+  vars:
+    qdrant_libc: "{{ 'musl' if ansible_architecture in ['aarch64', 'arm64'] else 'gnu' }}"
+    qdrant_tarball: "qdrant-{{ ansible_architecture }}-unknown-linux-{{ qdrant_libc }}.tar.gz"
+  block:
+    - name: Download qdrant tarball
+      ansible.builtin.get_url:
+        url: "https://github.com/qdrant/qdrant/releases/download/{{ qdrant_native_version }}/{{ qdrant_tarball }}"
+        dest: /tmp/qdrant.tar.gz
+        mode: "0644"
+    - name: Extract qdrant binary
+      ansible.builtin.unarchive:
+        src: /tmp/qdrant.tar.gz
+        dest: "{{ checkout_owner_home }}/.local/bin/"
+        remote_src: true
+    - name: Ensure qdrant binary is executable
+      ansible.builtin.file:
+        path: "{{ checkout_owner_home }}/.local/bin/qdrant"
+        mode: "0755"
+    - name: Clean up download
+      ansible.builtin.file:
+        path: /tmp/qdrant.tar.gz
+        state: absent
+
+- name: Write loopback-only qdrant config
+  ansible.builtin.copy:
+    dest: "{{ checkout_owner_home }}/.local/share/qdrant/config/config.yaml"
+    content: |
+      storage:
+        storage_path: {{ checkout_owner_home }}/.local/share/qdrant/storage
+
+      service:
+        host: 127.0.0.1
+        http_port: {{ qdrant_http_port }}
+        grpc_port: {{ qdrant_grpc_port }}
+    force: false
+    mode: "0644"
+
+- name: Write qdrant systemd --user unit
+  ansible.builtin.copy:
+    dest: "{{ checkout_owner_home }}/.config/systemd/user/qdrant.service"
+    content: |
+      [Unit]
+      Description=Qdrant vector database (native, loopback-only, content-RAG store)
+      After=network.target
+
+      [Service]
+      ExecStart={{ checkout_owner_home }}/.local/bin/qdrant --config-path {{ checkout_owner_home }}/.local/share/qdrant/config/config.yaml
+      Restart=on-failure
+      RestartSec=5
+
+      [Install]
+      WantedBy=default.target
+    force: false
+    mode: "0644"
+
+- name: Enable linger so the --user service runs without a login session
+  ansible.builtin.command: "loginctl enable-linger {{ ansible_user_id }}"
+  changed_when: false
+  failed_when: false
+
+- name: Reload + enable + start qdrant --user service
+  ansible.builtin.systemd_service:
+    name: qdrant.service
+    scope: user
+    daemon_reload: true
+    enabled: true
+    state: started
+  failed_when: false

@@ -1,0 +1,37 @@
+---
+- name: "[caseforge] disk writes log skipped for this box"
+  ansible.builtin.debug:
+    msg: "[caseforge] Skipping the disk writes log: disk_writes_enabled is not set for this host."
+  when: not (disk_writes_enabled | bool)
+
+- name: Disk writes log
+  when: disk_writes_enabled | bool
+  block:
+    - name: Install the collector
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../../tools/monitoring/disk_writes.py"
+        dest: "{{ disk_writes_script_dest }}"
+        mode: "0755"
+
+    - name: State and log directory
+      ansible.builtin.file:
+        path: /var/lib/caseforge
+        state: directory
+        mode: "0755"
+
+    - name: Units
+      ansible.builtin.copy:
+        src: "{{ item }}"
+        dest: "/etc/systemd/system/{{ item }}"
+        mode: "0644"
+      loop:
+        - ikoro-disk-writes.service
+        - ikoro-disk-writes.timer
+
+    - name: Run it every hour
+      ansible.builtin.systemd_service:
+        name: ikoro-disk-writes.timer
+        enabled: true
+        state: started
+        daemon_reload: true
+      ignore_errors: "{{ ansible_check_mode }}"

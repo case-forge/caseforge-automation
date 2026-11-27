@@ -1,0 +1,61 @@
+---
+
+
+checkout_owner_home: "{{ '/root' if ansible_user == 'root' else '/home/' + ansible_user }}"
+
+dev_tooling_enabled: false
+
+base_packages_tier: "{{ 'dev' if dev_tooling_enabled | bool else 'production' }}"
+
+time_sync_timezone: Etc/UTC
+
+repo_checkout_ssh_url: "git@github.com:your-org/caseforge-automation.git"
+git_identity_name: "Example Firm Deploy"
+git_identity_email: "deploy@example.com"
+
+mothership_keys_url: "https://github.com/your-github-user.keys"
+
+mosh_reaper_enabled: false
+zellij_reaper_enabled: false
+session_reapers_ssh_url: "git@github.com:your-org/session-reapers.git"
+claude_tools_checkout_enabled: false
+claude_tools_url: "https://github.com/your-org/claude-tools.git"
+
+secrets_bootstrap_vault_name: set-your-key-vault-name-here
+
+restic_repo_name: "example-{{ inventory_hostname }}"
+
+
+postgres_db_name: caseforge
+postgres_db_user: caseforge
+
+example_production_units: []
+systemd_services_units: "{{ example_production_units if 'production' in group_names else [] }}"
+systemd_services_timers: []
+systemd_services_persistent: []
+
+systemd_services_dropins: []
+
+hub_api_listen_host: 127.0.0.1
+hub_api_listen_port: 8771
+hub_api_tailnet_port: 8770
+documenso_api_enabled: "0"
+
+cron_jobs_enabled: "{{ 'production' in group_names }}"
+cron_jobs:
+  - name: CaseForge scratch prune
+    minute: "20"
+    hour: "4"
+    job: bash tools/run-prune-scratch.sh
+  - name: CaseForge telemetry vacuum
+    minute: "10"
+    hour: "4"
+    weekday: "0"
+    job: bash tools/run-telemetry-vacuum.sh
+  - name: CaseForge clientdb backup
+    minute: "15"
+    hour: "3"
+    job: bash tools/run-clientdb-backup.sh
+  - name: CaseForge obligation poll
+    minute: "*/15"
+    job: bash tools/run-obligation-poll.sh

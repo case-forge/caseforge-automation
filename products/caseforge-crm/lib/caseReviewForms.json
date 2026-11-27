@@ -1,0 +1,144 @@
+{
+  "forms": [
+    {
+      "key": "review",
+      "title": "File Review Form",
+      "note": "Each row is answered Yes, No or N/A.",
+      "sections": [
+        {
+          "key": "review_header",
+          "title": "File details",
+          "rows": [
+            {"key": "r_face_to_face", "label": "Review face to face", "kind": "yn"},
+            {"key": "r_file_reference", "label": "File reference", "kind": "text"},
+            {"key": "r_matter_type", "label": "Matter type", "kind": "text"},
+            {"key": "r_date_opened", "label": "Date opened", "kind": "date"},
+            {"key": "r_client_name", "label": "Client name", "kind": "text"},
+            {"key": "r_fee_earner", "label": "Fee earner", "kind": "text"},
+            {"key": "r_procedural_reviewer", "label": "Procedural reviewer", "kind": "text"},
+            {"key": "r_legal_reviewer", "label": "Legal reviewer", "kind": "text"}
+          ]
+        },
+        {
+          "key": "procedural",
+          "title": "Procedural Review",
+          "rows": [
+            {"key": "r_opening_completed", "group": "File Opening Checklist", "label": "Completed?", "kind": "ynna"},
+            {"key": "r_opening_conflict", "group": "File Opening Checklist", "label": "Conflict of interest consideration and dated?", "kind": "ynna"},
+            {"key": "r_key_dates_recorded", "group": "Key Dates", "label": "Recorded?", "kind": "ynna"},
+            {"key": "r_key_dates_backed_up", "group": "Key Dates", "label": "Backed up?", "kind": "ynna"},
+            {"key": "r_undertakings_recorded", "group": "Undertakings", "label": "Recorded?", "kind": "ynna"},
+            {"key": "r_undertakings_backed_up", "group": "Undertakings", "label": "Backed up?", "kind": "ynna"},
+            {"key": "r_opening_risk", "group": "Opening Risk Assessment (Lexcel)", "label": "Conducted?", "kind": "ynna"},
+            {"key": "r_identity", "group": "Evidence of Identity", "label": "Obtained (personal identity and address)?", "kind": "ynna"},
+            {"key": "r_ccl_fee_earner", "group": "Initial Client Care Letter & Terms of Business", "label": "Name/status of fee earner", "kind": "ynna"},
+            {"key": "r_ccl_supervisor", "group": "Initial Client Care Letter & Terms of Business", "label": "Name of supervisor?", "kind": "ynna"},
+            {"key": "r_ccl_limits", "group": "Initial Client Care Letter & Terms of Business", "label": "Limits on ability to act?", "kind": "ynna"},
+            {"key": "r_ccl_service_level", "group": "Initial Client Care Letter & Terms of Business", "label": "Service level?", "kind": "ynna"},
+            {"key": "r_ccl_timescale", "group": "Initial Client Care Letter & Terms of Business", "label": "Timescale provided?", "kind": "ynna"},
+            {"key": "r_ccl_instructions", "group": "Initial Client Care Letter & Terms of Business", "label": "Detailed instructions tailored to client?", "kind": "ynna"},
+            {"key": "r_ccl_advice", "group": "Initial Client Care Letter & Terms of Business", "label": "Advice given?", "kind": "ynna"},
+            {"key": "r_ccl_action", "group": "Initial Client Care Letter & Terms of Business", "label": "Action agreed?", "kind": "ynna"},
+            {"key": "r_ccl_merits", "group": "Initial Client Care Letter & Terms of Business", "label": "Merits benefit/cost estimate/stat charge confirmed?", "kind": "ynna"},
+            {"key": "r_ccl_complaints", "group": "Initial Client Care Letter & Terms of Business", "label": "Complaints procedure/named handler/Ombudsman?", "kind": "ynna"},
+            {"key": "r_counsel_choice", "group": "Counsel/Experts", "label": "Evidence of client choice?", "kind": "ynna"},
+            {"key": "r_counsel_named", "group": "Counsel/Experts", "label": "Named?", "kind": "ynna"},
+            {"key": "r_counsel_register", "group": "Counsel/Experts", "label": "Listed on approved expert register?", "kind": "ynna"},
+            {"key": "r_counsel_assessment", "group": "Counsel/Experts", "label": "Assessment of performance/report/opinion?", "kind": "ynna"},
+            {"key": "r_progress_reports", "group": "Progress", "label": "Reports to client as appropriate (3rd party letters copied)?", "kind": "ynna"},
+            {"key": "r_progress_enquiries", "group": "Progress", "label": "Enquiries answered in one week?", "kind": "ynna"},
+            {"key": "r_progress_changes", "group": "Progress", "label": "Changes in action plan/fee earner notified?", "kind": "ynna"},
+            {"key": "r_progress_deadlines", "group": "Progress", "label": "Deadlines met, and time recorded?", "kind": "ynna"},
+            {"key": "r_progress_complex", "group": "Progress", "label": "Complex case plan required?", "kind": "ynna"},
+            {"key": "r_costs_updates", "group": "Costs Updates", "label": "Provided when necessary & every six months?", "kind": "ynna"},
+            {"key": "r_file_order", "group": "File Arrangement", "label": "File in chronological order/tidy/means/key info?", "kind": "ynna"},
+            {"key": "r_file_deeds", "group": "File Arrangement", "label": "Deeds/documents secure and location stated?", "kind": "ynna"},
+            {"key": "r_end_outcome", "group": "End of Case Client Care Letter", "label": "Outcome confirmed to client?", "kind": "ynna"},
+            {"key": "r_end_conclusion", "group": "End of Case Client Care Letter", "label": "Case conclusion/need for future review confirmed?", "kind": "ynna"},
+            {"key": "r_end_money", "group": "End of Case Client Care Letter", "label": "Accounts for any outstanding money?", "kind": "ynna"},
+            {"key": "r_end_documents", "group": "End of Case Client Care Letter", "label": "Original documents and property returned?", "kind": "ynna"},
+            {"key": "r_end_storage", "group": "End of Case Client Care Letter", "label": "Storage and retrieval?", "kind": "ynna"},
+            {"key": "r_end_feedback", "group": "End of Case Client Care Letter", "label": "Client questionnaire/feedback sought?", "kind": "ynna"},
+            {"key": "r_closing_risk", "group": "Closing Risk Review (Lexcel)", "label": "Carried out?", "kind": "ynna"}
+          ]
+        },
+        {
+          "key": "legal",
+          "title": "Legal Review",
+          "person_only": true,
+          "rows": [
+            {"key": "r_legal_issues", "label": "Legal issues correctly identified?", "kind": "ynna"},
+            {"key": "r_legal_advice", "label": "Correct legal advice given?", "kind": "ynna"},
+            {"key": "r_legal_conduct", "label": "Case conducted competently and expeditiously?", "kind": "ynna"},
+            {"key": "r_legal_objectives", "label": "Client's objectives achieved?", "kind": "ynna"},
+            {"key": "r_legal_new_aspects", "label": "Any new legal aspects?", "kind": "ynna"},
+            {"key": "r_legal_comments", "label": "Additional comments on the legal issues (please do not leave blank)", "kind": "longtext"},
+            {"key": "r_corrective_action", "label": "Corrective action identified (None / details)", "kind": "longtext"},
+            {"key": "r_corrective_by", "label": "Corrective action required by", "kind": "date", "optional": true},
+            {"key": "r_corrective_done", "label": "Corrective action completed on", "kind": "date", "optional": true},
+            {"key": "r_corrective_checked_by", "label": "Corrective action & review checked by (legal reviewer)", "kind": "text", "optional": true},
+            {"key": "r_corrective_checked_on", "label": "Corrective action & review checked on", "kind": "date", "optional": true}
+          ]
+        }
+      ]
+    },
+    {
+      "key": "summary",
+      "title": "File Summary Sheet",
+      "note": "Initial AND DATE boxes when completing tasks, or mark as not applicable.",
+      "sections": [
+        {
+          "key": "summary_header",
+          "title": "File details",
+          "rows": [
+            {"key": "s_client_name", "label": "Full client name", "kind": "text"},
+            {"key": "s_fee_earner", "label": "Fee earner name", "kind": "text"},
+            {"key": "s_matter_number", "label": "Client matter number", "kind": "text"},
+            {"key": "s_summary", "label": "Summary of matter", "kind": "longtext"}
+          ]
+        },
+        {
+          "key": "commencement",
+          "title": "Commencement",
+          "rows": [
+            {"key": "s_conflict", "label": "Conflict of interest checked and cleared (yes/no, by who, date)", "kind": "signoff", "options": [["yes", "Yes"], ["no", "No"]], "na": false},
+            {"key": "s_source", "label": "Source of client or lender", "kind": "text"},
+            {"key": "s_cdd", "label": "Money laundering: client due diligence completed, ID checked and copy filed", "kind": "signoff"},
+            {"key": "s_tdd", "label": "Money laundering: transaction due diligence", "kind": "signoff"},
+            {"key": "s_ccl_sent", "label": "Client care letter sent", "kind": "signoff"},
+            {"key": "s_tob_sent", "label": "Terms of business sent", "kind": "signoff"},
+            {"key": "s_tob_accepted", "label": "Terms of business accepted", "kind": "signoff"},
+            {"key": "s_risk_assessment", "label": "Initial operational risk assessment & sufficient benefit test carried out", "kind": "signoff"},
+            {"key": "s_risk_assigned", "label": "Operational risk assigned", "kind": "choice", "options": [["normal", "Normal"], ["high", "High"]]},
+            {"key": "s_risk_high", "label": "If high, inform the risk manager and note special arrangements", "kind": "longtext", "optional": true}
+          ]
+        },
+        {
+          "key": "progress",
+          "title": "Progress",
+          "rows": [
+            {"key": "s_key_dates_backup", "label": "Key dates reminders recorded in backup system", "kind": "choice", "options": [["outlook_calendar", "Outlook Calendar"], ["outlook_tasks", "Outlook Tasks"], ["desk_diary", "Desk Diary"], ["other", "Other"]]},
+            {"key": "s_key_dates", "label": "Key dates (list)", "kind": "longtext"},
+            {"key": "s_status", "label": "Status tracking (description and date completed, for example each hearing)", "kind": "longtext"}
+          ]
+        },
+        {
+          "key": "conclusion",
+          "title": "Conclusion",
+          "rows": [
+            {"key": "s_undertakings", "label": "All undertakings discharged", "kind": "signoff"},
+            {"key": "s_complaints", "label": "Any complaints dealt with under the complaints procedure", "kind": "signoff"},
+            {"key": "s_fees_paid", "label": "All outstanding fees and disbursements paid", "kind": "signoff"},
+            {"key": "s_concluding_risk", "label": "Concluding risk assessment carried out", "kind": "signoff"},
+            {"key": "s_risk_report", "label": "Report made to risk manager", "kind": "yn"},
+            {"key": "s_adviser_evaluation", "label": "Expert/counsel/other adviser evaluation entered in register", "kind": "signoff"},
+            {"key": "s_closed", "label": "Closed on system", "kind": "signoff"},
+            {"key": "s_archived_date", "label": "Archived date", "kind": "date", "optional": true},
+            {"key": "s_archive_number", "label": "Archive number", "kind": "text", "optional": true},
+            {"key": "s_destroy_date", "label": "Destroy date", "kind": "date", "optional": true}
+          ]
+        }
+      ]
+    }
+  ]
+}

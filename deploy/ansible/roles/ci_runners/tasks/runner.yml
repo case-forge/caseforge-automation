@@ -1,0 +1,77 @@
+---
+- name: "{{ runner.name }}: runner directory present"
+  ansible.builtin.stat:
+    path: "{{ ci_runners_home }}/{{ runner.dir }}"
+  register: ci_runners_dir
+
+- name: "{{ runner.name }}: configure"
+  when: ci_runners_dir.stat.isdir | default(false)
+  block:
+    - name: "{{ runner.name }}: home and temp directories"
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ ci_runners_user }}"
+        group: "{{ ci_runners_user }}"
+        mode: "0755"
+      loop:
+        - "{{ ci_runners_root }}/runner-home{{ runner.suffix }}"
+        - "{{ ci_runners_root }}/tmp{{ runner.suffix }}"
+        - "{{ ci_runners_root }}/work{{ runner.suffix }}"
+
+    - name: "{{ runner.name }}: job folder on the root filesystem"
+      ansible.builtin.replace:
+        path: "{{ ci_runners_home }}/{{ runner.dir }}/.runner"
+        regexp: '("workFolder"\s*:\s*)"[^"]*"'
+        replace: '\1"{{ ci_runners_root }}/work{{ runner.suffix }}"'
+
+    - name: "{{ runner.name }}: environment points at the root filesystem and the shared tool cache"
+      ansible.builtin.lineinfile:
+        path: "{{ ci_runners_home }}/{{ runner.dir }}/.env"
+        regexp: "^{{ item.key }}="
+        line: "{{ item.key }}={{ item.value }}"
+      loop:
+        - { key: HOME, value: "{{ ci_runners_root }}/runner-home{{ runner.suffix }}" }
+        - { key: TMPDIR, value: "{{ ci_runners_root }}/tmp{{ runner.suffix }}" }
+        - { key: AGENT_TOOLSDIRECTORY, value: "{{ ci_runners_tool_cache }}" }
+        - { key: RUNNER_TOOL_CACHE, value: "{{ ci_runners_tool_cache }}" }
+        - { key: CI_PYTEST_WORKERS, value: "{{ ci_runners_pytest_workers }}" }
+
+    - name: "{{ runner.name }}: unit override directory"
+      ansible.builtin.file:
+        path: "/etc/systemd/system/{{ runner.unit }}.d"
+        state: directory
+        mode: "0755"
+
+    - name: "{{ runner.name }}: drop runtime-set limits that would override the drop-in"
+      ansible.builtin.file:
+        path: "/etc/systemd/system.control/{{ runner.unit }}.d"
+        state: absent
+      notify: reload systemd manager
+
+    - name: "{{ runner.name }}: resource limits"
+      ansible.builtin.copy:
+        dest: "/etc/systemd/system/{{ runner.unit }}.d/override.conf"
+        mode: "0644"
+        content: |
+          [Service]
+          Nice=10
+          CPUWeight=30
+          MemoryHigh={{ ci_runners_memory_high }}
+          MemoryMax={{ ci_runners_memory_max }}
+      notify: reload systemd manager
+
+    - name: "{{ runner.name }}: not started at boot (the controller starts it)"
+      ansible.builtin.systemd_service:
+        name: "{{ runner.unit }}"
+        enabled: false
+        daemon_reload: true
+      when: runner.managed | default(true)
+
+    - name: "{{ runner.name }}: always on (the controller does not manage it)"
+      ansible.builtin.systemd_service:
+        name: "{{ runner.unit }}"
+        enabled: true
+        state: started
+        daemon_reload: true
+      when: not (runner.managed | default(true))

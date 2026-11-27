@@ -1,0 +1,267 @@
+---
+- name: Install GitHub-release tarball tools (zellij)
+  ansible.builtin.include_tasks: github_release_tarball.yml
+  loop: "{{ binary_tools_github_releases }}"
+  loop_control:
+    loop_var: release_tool
+  when: release_tool.name != 'zellij' or dev_tooling_enabled | bool
+
+- name: "[caseforge] zellij skipped (dev_tooling_enabled is false)"
+  ansible.builtin.debug:
+    msg: "[caseforge] zellij skipped -- dev_tooling_enabled is false for this host"
+  when: not (dev_tooling_enabled | bool)
+
+- name: Install raw single-file GitHub-release binaries (cloudflared)
+  ansible.builtin.include_tasks: raw_binary.yml
+  loop: "{{ binary_tools_raw_binaries }}"
+  loop_control:
+    loop_var: raw_tool
+  when: not (cloudflared_enabled | default(false) | bool)
+
+- name: "git-cliff: check if already installed"
+  ansible.builtin.stat:
+    path: /usr/local/bin/git-cliff
+  register: bt_git_cliff_existing
+
+- name: "git-cliff: download + install (docs-discipline plan's changelog tooling)"
+  when: not bt_git_cliff_existing.stat.exists
+  block:
+    - name: "git-cliff: pin version (not releases/latest)"
+      ansible.builtin.set_fact:
+        bt_git_cliff_version: "2.14.1"
+        bt_git_cliff_arch: "{{ {'x86_64': 'x86_64', 'aarch64': 'aarch64'}[ansible_architecture] }}"
+
+    - name: "git-cliff: set the asset/member names now both are known"
+      ansible.builtin.set_fact:
+        bt_git_cliff_asset_stem: "git-cliff-{{ bt_git_cliff_version }}-{{ bt_git_cliff_arch }}-unknown-linux-musl"
+
+    - name: "git-cliff: download release tarball"
+      ansible.builtin.get_url:
+        url: "https://github.com/orhun/git-cliff/releases/download/v{{ bt_git_cliff_version }}/{{ bt_git_cliff_asset_stem }}.tar.gz"
+        dest: /tmp/git-cliff.tar.gz
+        mode: "0644"
+
+    - name: "git-cliff: extract binary"
+      ansible.builtin.unarchive:
+        src: /tmp/git-cliff.tar.gz
+        dest: /tmp
+        remote_src: true
+        extra_opts:
+          - "--strip-components=1"
+        include:
+          - "git-cliff-{{ bt_git_cliff_version }}/git-cliff"
+
+    - name: "git-cliff: install to /usr/local/bin/git-cliff"
+      ansible.builtin.copy:
+        src: /tmp/git-cliff
+        dest: /usr/local/bin/git-cliff
+        mode: "0755"
+        remote_src: true
+
+    - name: "git-cliff: clean up download"
+      ansible.builtin.file:
+        path: /tmp/git-cliff.tar.gz
+        state: absent
+
+- name: rclone (official install script -- Debian/Ubuntu's apt package lags rclone's own releases)
+  ansible.builtin.shell:
+    cmd: "curl -fsSL https://rclone.org/install.sh | bash"
+    creates: /usr/bin/rclone
+
+- name: Proton Pass CLI (official install script)
+  ansible.builtin.shell:
+    cmd: "curl -fsSL https://proton.me/download/pass-cli/install.sh | bash"
+    creates: "{{ checkout_owner_home }}/.local/bin/pass-cli"
+  become: false
+
+- name: Proton Pass CLI -- headless key storage (no Linux keyring on a server)
+  ansible.builtin.blockinfile:
+    path: "{{ checkout_owner_home }}/.bashrc"
+    marker: "# CaseForge pass-cli headless key storage: {mark}"
+    marker_begin: "begin"
+    marker_end: "end"
+    create: true
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    block: |
+      export PROTON_PASS_KEY_PROVIDER=fs
+
+
+- name: Ensure ~/.config/zellij exists
+  ansible.builtin.file:
+    path: "{{ checkout_owner_home }}/.config/zellij"
+    state: directory
+    mode: "0755"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+  when: dev_tooling_enabled | bool
+
+- name: zellij config (mouse mode, scroll buffer, copy-on-select)
+  ansible.builtin.copy:
+    dest: "{{ checkout_owner_home }}/.config/zellij/config.kdl"
+    mode: "0644"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    content: |
+      // CaseForge zellij config — mirrors the tmux scroll/highlight ergonomics.
+      // Tabs render along the TOP by default; keybind hints along the bottom.
+
+      // Mouse wheel scrolls the pane's scrollback; click-drag highlights.
+      mouse_mode true
+
+      // Highlighting text with the mouse copies it immediately (no copy-mode dance).
+      copy_on_select true
+
+      // Generous scrollback so you can scroll far up through a long session.
+      scroll_buffer_size 50000
+
+      // Send copies to the system clipboard.
+      copy_clipboard "system"
+
+      // No copy_command: let zellij fall back to plain OSC52 emission. An
+      // earlier pass here set copy_command to pipe through xclip, reaching
+      // this box's own X11 clipboard (confirmed live 2026-09-06 via
+      // `loginctl`) -- correct for gnome-terminal/VTE locally, but reachable
+      // only by someone physically at that desktop's X11 session. It was
+      // never reachable from a remote client, which is how a personal laptop
+      // actually gets used in practice (mosh + a real terminal on the far
+      // end) -- found live 2026-09-14 when that stopped being theoretical.
+      // OSC52 is the mechanism that reaches a *remote* terminal's real
+      // clipboard; Windows Terminal (and most modern terminals other than
+      // gnome-terminal/VTE) honour it directly. If a box's actual primary
+      // use becomes someone sitting at its own X11 desktop again, re-add
+      // `copy_command "xclip -selection clipboard"` -- but check who's
+      // actually connected first, the way this got missed the first time.
+
+      // Don't draw frames around single panes — cleaner, more tmux-like.
+      pane_frames false
+
+      // Don't nuke the session on the last tab/pane close by accident.
+      on_force_close "detach"
+  when: dev_tooling_enabled | bool
+
+- name: "[caseforge] zellij-config skipped (dev_tooling_enabled is false)"
+  ansible.builtin.debug:
+    msg: "[caseforge] zellij-config skipped -- dev_tooling_enabled is false for this host"
+  when: not (dev_tooling_enabled | bool)
+
+- name: Clipboard-bridge tools for zellij's copy_clipboard "system" (desktop boxes only -- nothing to reach headlessly)
+  ansible.builtin.apt:
+    name:
+      - wl-clipboard
+      - xclip
+    state: present
+  when: inventory_hostname in groups['physical_or_personal']
+
+- name: "Nerd Font (JetBrainsMono) for zellij's UI glyphs (desktop boxes only)"
+  when: inventory_hostname in groups['physical_or_personal']
+  block:
+    - name: "Nerd Font: check if already installed"
+      ansible.builtin.stat:
+        path: "{{ checkout_owner_home }}/.local/share/fonts/JetBrainsMonoNerdFont-Regular.ttf"
+      register: bt_nerd_font_existing
+
+    - name: "Nerd Font: download + install"
+      when: not bt_nerd_font_existing.stat.exists
+      become: false
+      block:
+        - name: "Nerd Font: ensure ~/.local/share/fonts exists"
+          ansible.builtin.file:
+            path: "{{ checkout_owner_home }}/.local/share/fonts"
+            state: directory
+            mode: "0755"
+
+        - name: "Nerd Font: download release zip"
+          ansible.builtin.get_url:
+            url: "https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip"
+            dest: /tmp/JetBrainsMonoNerdFont.zip
+            mode: "0644"
+
+        - name: "Nerd Font: extract ttf files"
+          ansible.builtin.unarchive:
+            src: /tmp/JetBrainsMonoNerdFont.zip
+            dest: "{{ checkout_owner_home }}/.local/share/fonts"
+            remote_src: true
+            include:
+              - "JetBrainsMonoNerdFont-Regular.ttf"
+              - "JetBrainsMonoNerdFont-Bold.ttf"
+
+        - name: "Nerd Font: clean up download"
+          ansible.builtin.file:
+            path: /tmp/JetBrainsMonoNerdFont.zip
+            state: absent
+
+        - name: "Nerd Font: refresh font cache"
+          ansible.builtin.command: fc-cache -f
+
+- name: Bash zellij auto-attach (interactive shells only, opt-out via NO_ZELLIJ)
+  ansible.builtin.blockinfile:
+    path: "{{ checkout_owner_home }}/.bashrc"
+    marker: "# CaseForge zellij auto-attach: {mark}"
+    marker_begin: "begin"
+    marker_end: "end"
+    create: true
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    block: |
+      if [[ $- == *i* ]] && [[ -t 1 ]] && [[ -z "${ZELLIJ:-}" ]] && [[ -z "${NO_ZELLIJ:-}" ]] && command -v zellij >/dev/null 2>&1; then
+        zellij attach --create caseforge
+      fi
+
+- name: pip global config (break-system-packages, no cache, ignore root warning)
+  ansible.builtin.copy:
+    dest: /etc/pip.conf
+    mode: "0644"
+    force: false
+    content: |
+      [global]
+      break-system-packages = true
+      no-cache-dir = true
+      root-user-action = ignore
+
+- name: Check for existing Azure CLI
+  ansible.builtin.command: az version --query '"azure-cli"' -o tsv
+  become: false
+  register: binary_tools_az_check
+  changed_when: false
+  check_mode: false
+  failed_when: false
+
+- name: Install Azure CLI (official Microsoft install script)
+  ansible.builtin.shell:
+    cmd: "curl -sL https://aka.ms/InstallAzureCLIDeb | bash"
+  when: binary_tools_az_check.rc != 0
+
+- name: Harden ~/.azure ownership and permissions (also fixes any prior root-owned state, non-fatal if the dir doesn't exist yet)
+  ansible.builtin.file:
+    path: "{{ checkout_owner_home }}/.azure"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "go-rwx"
+    state: directory
+    recurse: true
+  failed_when: false
+
+- name: "opentofu: check if already installed"
+  ansible.builtin.stat:
+    path: /usr/local/bin/tofu
+  register: bt_opentofu_existing
+  when: opentofu_enabled | default(false) | bool
+
+- name: "opentofu: download, verify and install"
+  when: (opentofu_enabled | default(false) | bool) and not bt_opentofu_existing.stat.exists
+  block:
+    - name: "opentofu: download release tarball (checksum verified)"
+      ansible.builtin.get_url:
+        url: "https://github.com/opentofu/opentofu/releases/download/v{{ binary_tools_opentofu_version }}/tofu_{{ binary_tools_opentofu_version }}_linux_{{ {'x86_64': 'amd64', 'aarch64': 'arm64'}[ansible_architecture] }}.tar.gz"
+        dest: /tmp/opentofu.tar.gz
+        mode: "0644"
+        checksum: "sha256:https://github.com/opentofu/opentofu/releases/download/v{{ binary_tools_opentofu_version }}/tofu_{{ binary_tools_opentofu_version }}_SHA256SUMS"
+
+    - name: "opentofu: extract the binary"
+      ansible.builtin.unarchive:
+        src: /tmp/opentofu.tar.gz
+        dest: /usr/local/bin
+        remote_src: true
+        include: [tofu]
+        mode: "0755"

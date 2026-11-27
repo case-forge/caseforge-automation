@@ -1,0 +1,298 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://caseforge.uk/schemas/firm-profile/v1.json",
+  "title": "CaseForge firm profile",
+  "description": "One firm's identity and layout: names, domains, folder books, storage roots, vault name, hostnames and the firm details court forms print. Never secrets: a vault is named here, its values stay in the vault.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "profile_version",
+    "firm_name",
+    "mail_domains",
+    "web_domains",
+    "workers",
+    "legal_aid_worker",
+    "folder_books",
+    "worker_books",
+    "shared_books",
+    "auto_books",
+    "casework_books",
+    "library_root",
+    "closed_library_root",
+    "onedrive_root_name",
+    "sharepoint_site_id",
+    "key_vault_name",
+    "access_team_domain",
+    "hostnames",
+    "legal_rep_name",
+    "legal_rep_firm",
+    "legal_rep_address_building",
+    "legal_rep_address_line2",
+    "legal_rep_address_town",
+    "legal_rep_address_county",
+    "legal_rep_postcode",
+    "legal_rep_dx",
+    "legal_rep_phone",
+    "legal_rep_email",
+    "pba_number",
+    "statement_of_truth_signer",
+    "statement_of_truth_firm",
+    "statement_of_truth_position",
+    "firm_short_name",
+    "protective_orders_book",
+    "local_model_url",
+    "backup_folder",
+    "common_documents_book",
+    "unsorted_attendance_book",
+    "office_street",
+    "office_town",
+    "office_postcode",
+    "email_heading"
+  ],
+  "$defs": {
+    "domain": {
+      "type": "string",
+      "pattern": "^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z]{2,63}$"
+    },
+    "nonEmptyName": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^\\S(.*\\S)?$"
+    },
+    "uniqueNames": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/nonEmptyName"
+      }
+    },
+    "uniqueNamesOrNone": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/nonEmptyName"
+      }
+    },
+    "optionalText": {
+      "type": "string",
+      "pattern": "^(\\S(.*\\S)?)?$"
+    }
+  },
+  "properties": {
+    "profile_version": {
+      "description": "Schema version this profile is written against.",
+      "const": 1
+    },
+    "firm_name": {
+      "description": "The firm's full trading name, as it appears on letters and envelopes.",
+      "$ref": "#/$defs/nonEmptyName"
+    },
+    "mail_domains": {
+      "description": "Domains the firm's own mailboxes send from; mail from these is internal.",
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/domain"
+      }
+    },
+    "web_domains": {
+      "description": "Domains the firm's web apps and signing service are served on.",
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/domain"
+      }
+    },
+    "workers": {
+      "description": "First names of the firm's people, in display order.",
+      "$ref": "#/$defs/uniqueNames"
+    },
+    "legal_aid_worker": {
+      "description": "The worker (one of workers) who asks the Legal Aid Agency for a client's means link.",
+      "$ref": "#/$defs/nonEmptyName"
+    },
+    "folder_books": {
+      "description": "Top-level matter folders (books) under library_root that hold live client matters.",
+      "$ref": "#/$defs/uniqueNames"
+    },
+    "worker_books": {
+      "description": "Each worker's own book: worker first name (one of workers) to the folder book (one of folder_books) their clients' folders sit directly in, in display order.",
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "$ref": "#/$defs/nonEmptyName"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/nonEmptyName"
+      }
+    },
+    "shared_books": {
+      "description": "Folder books (each one of folder_books) that nobody owns: a client in one is assigned to no one by that fact. May be empty.",
+      "$ref": "#/$defs/uniqueNamesOrNone"
+    },
+    "auto_books": {
+      "description": "Workers (each a key of worker_books) whose own books the auto scan watches. May be empty.",
+      "$ref": "#/$defs/uniqueNamesOrNone"
+    },
+    "casework_books": {
+      "description": "Workers (each a key of worker_books) whose own book is a casework root that mail is filed against: mail filed there carries the worker's name. May be empty.",
+      "$ref": "#/$defs/uniqueNamesOrNone"
+    },
+    "library_root": {
+      "description": "Path of the live client-files library inside the drive, relative to its root, with no leading or trailing slash.",
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[^/](.*[^/])?$"
+    },
+    "closed_library_root": {
+      "description": "Path of the closed client-files library, in the same form as library_root.",
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[^/](.*[^/])?$"
+    },
+    "onedrive_root_name": {
+      "description": "Name of the synced OneDrive/SharePoint root folder on a desktop.",
+      "$ref": "#/$defs/nonEmptyName"
+    },
+    "sharepoint_site_id": {
+      "description": "Graph site id of the SharePoint site holding the library: host,site-guid,web-guid.",
+      "type": "string",
+      "pattern": "^[a-z0-9.-]+\\.sharepoint\\.com,[0-9a-f-]{36},[0-9a-f-]{36}$"
+    },
+    "key_vault_name": {
+      "description": "Azure Key Vault name (not URL) holding the deployment's secrets.",
+      "type": "string",
+      "pattern": "^[a-zA-Z][a-zA-Z0-9-]{1,22}[a-zA-Z0-9]$"
+    },
+    "access_team_domain": {
+      "description": "Cloudflare Access team domain that signs the apps' identity tokens.",
+      "$ref": "#/$defs/domain"
+    },
+    "hostnames": {
+      "description": "Public hostnames of the firm's apps.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "crm",
+        "chat",
+        "sign"
+      ],
+      "properties": {
+        "crm": {
+          "$ref": "#/$defs/domain"
+        },
+        "chat": {
+          "$ref": "#/$defs/domain"
+        },
+        "sign": {
+          "$ref": "#/$defs/domain"
+        },
+        "demo": {
+          "$ref": "#/$defs/domain"
+        }
+      }
+    },
+    "legal_rep_name": {
+      "description": "The legal representative named on court forms (FL401 2.11).",
+      "$ref": "#/$defs/nonEmptyName"
+    },
+    "legal_rep_firm": {
+      "description": "The firm's name as court forms print it in the representative block (FL401 2.12).",
+      "$ref": "#/$defs/nonEmptyName"
+    },
+    "legal_rep_address_building": {
+      "description": "Firm address: building and street (FL401 2.13).",
+      "$ref": "#/$defs/nonEmptyName"
+    },
+    "legal_rep_address_line2": {
+      "description": "Firm address: second line, or empty.",
+      "$ref": "#/$defs/optionalText"
+    },
+    "legal_rep_address_town": {
+      "description": "Firm address: town or city.",
+      "$ref": "#/$defs/nonEmptyName"
+    },
+    "legal_rep_address_county": {
+      "description": "Firm address: county, or empty.",
+      "$ref": "#/$defs/optionalText"
+    },
+    "legal_rep_postcode": {
+      "description": "Firm address: postcode. A form whose postcode box takes seven characters gets it without the space.",
+      "$ref": "#/$defs/nonEmptyName"
+    },
+    "legal_rep_dx": {
+      "description": "The firm's DX number, or empty.",
+      "$ref": "#/$defs/optionalText"
+    },
+    "legal_rep_phone": {
+      "description": "The legal representative's phone number (FL401 2.14).",
+      "$ref": "#/$defs/nonEmptyName"
+    },
+    "pba_number": {
+      "description": "The firm's court-fee Payment by Account (PBA) number, as it is quoted to the court, or empty when the firm has none.",
+      "$ref": "#/$defs/optionalText"
+    },
+    "legal_rep_email": {
+      "description": "The legal representative's email address (FL401 2.15).",
+      "type": "string",
+      "pattern": "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"
+    },
+    "statement_of_truth_signer": {
+      "description": "Full name of the person who signs the statement of truth for the applicant.",
+      "$ref": "#/$defs/nonEmptyName"
+    },
+    "statement_of_truth_firm": {
+      "description": "The firm's name as the statement of truth prints it.",
+      "$ref": "#/$defs/nonEmptyName"
+    },
+    "statement_of_truth_position": {
+      "description": "The signer's position or office held.",
+      "$ref": "#/$defs/nonEmptyName"
+    },
+    "firm_short_name": {
+      "description": "The short form of the firm's name used in running prose, such as model prompts.",
+      "$ref": "#/$defs/nonEmptyName"
+    },
+    "protective_orders_book": {
+      "description": "The folder book (one of folder_books) that holds protective-order matters.",
+      "$ref": "#/$defs/nonEmptyName"
+    },
+    "local_model_url": {
+      "description": "Base URL of the self-hosted llama.cpp server, scheme, host and optional port, with no trailing slash.",
+      "type": "string",
+      "pattern": "^https?://[A-Za-z0-9.-]+(:[0-9]{1,5})?$"
+    },
+    "backup_folder": {
+      "description": "Drive folder that nightly backups upload to, relative to the drive root, with no leading or trailing slash.",
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[^/](.*[^/])?$"
+    },
+    "common_documents_book": {
+      "description": "Top-level folder under library_root holding the stock documents copied into client folders.",
+      "$ref": "#/$defs/nonEmptyName"
+    },
+    "unsorted_attendance_book": {
+      "description": "Top-level folder under library_root for attendance notes whose client has no notes folder yet.",
+      "$ref": "#/$defs/nonEmptyName"
+    },
+    "office_street": {
+      "description": "Office address as letters and statements write it in running text: building and street, in ordinary case.",
+      "$ref": "#/$defs/nonEmptyName"
+    },
+    "office_town": {
+      "description": "Office address: town or city, in ordinary case.",
+      "$ref": "#/$defs/nonEmptyName"
+    },
+    "office_postcode": {
+      "description": "Office address: postcode, with its space.",
+      "$ref": "#/$defs/nonEmptyName"
+    },
+    "email_heading": {
+      "description": "The heading printed at the top of an email rendered to PDF for the file.",
+      "$ref": "#/$defs/nonEmptyName"
+    }
+  }
+}

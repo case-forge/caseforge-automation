@@ -1,0 +1,6 @@
+---
+- name: restart docker daemon
+  ansible.builtin.systemd_service:
+    name: docker
+    state: restarted
+  when: docker_restart_daemon_on_log_config_change | bool

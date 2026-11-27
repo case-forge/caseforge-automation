@@ -1,0 +1,7 @@
+---
+ci_runner_host_packages:
+  - poppler-utils
+  - unixodbc-dev
+  - python3-venv
+  - pandoc
+  - age

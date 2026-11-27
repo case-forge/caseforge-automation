@@ -1,0 +1,18 @@
+---
+- name: "[caseforge] claude_tools checkout skipped for this box"
+  ansible.builtin.debug:
+    msg: "[caseforge] Skipping claude-tools checkout: claude_tools_checkout_enabled is not set for this host."
+  when: not (claude_tools_checkout_enabled | bool)
+
+- name: Check if claude-tools already checked out
+  ansible.builtin.stat:
+    path: "{{ claude_tools_checkout_dir }}/.git"
+  register: claude_tools_checkout_existing
+  when: claude_tools_checkout_enabled | bool
+
+- name: Clone claude-tools
+  ansible.builtin.git:
+    repo: "{{ claude_tools_url }}"
+    dest: "{{ claude_tools_checkout_dir }}"
+  become: false
+  when: (claude_tools_checkout_enabled | bool) and not claude_tools_checkout_existing.stat.exists

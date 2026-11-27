@@ -1,0 +1,7 @@
+---
+feature_flags_enabled: true
+feature_flags_path: /etc/caseforge-automation/flags.env
+
+feature_flags_ocr_fallback: "1"
+
+feature_flags_omp_thread_limit: "1"

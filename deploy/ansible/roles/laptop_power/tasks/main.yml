@@ -1,0 +1,35 @@
+---
+
+- name: Disable suspend-on-lid-close (logind)
+  ansible.builtin.lineinfile:
+    path: /etc/systemd/logind.conf
+    regexp: "^#?{{ item }}="
+    line: "{{ item }}=ignore"
+  loop:
+    - HandleLidSwitch
+    - HandleLidSwitchDocked
+    - HandleLidSwitchExternalPower
+  notify: restart systemd-logind
+
+- name: Disable GNOME's own idle-suspend (AC and battery)
+  community.general.dconf:
+    key: "/org/gnome/settings-daemon/plugins/power/{{ item }}"
+    value: "'nothing'"
+    state: present
+  loop:
+    - sleep-inactive-ac-type
+    - sleep-inactive-battery-type
+  become: false
+  environment:
+    DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ ansible_user_uid }}/bus"
+  failed_when: false
+
+- name: Disable idle screen blanking (GNOME screensaver activation)
+  community.general.dconf:
+    key: "/org/gnome/desktop/session/idle-delay"
+    value: "uint32 0"
+    state: present
+  become: false
+  environment:
+    DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ ansible_user_uid }}/bus"
+  failed_when: false

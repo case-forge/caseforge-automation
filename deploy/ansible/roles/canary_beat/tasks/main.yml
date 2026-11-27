@@ -1,0 +1,37 @@
+---
+- name: "[caseforge] canary_beat skipped for this box"
+  ansible.builtin.debug:
+    msg: "[caseforge] Skipping the canary check-in: canary_beat_enabled is not set for this host."
+  when: not (canary_beat_enabled | bool)
+
+- name: Program folder for the canary check-in
+  ansible.builtin.file:
+    path: "{{ canary_beat_app_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when: canary_beat_enabled | bool
+
+- name: Copy the sender
+  ansible.builtin.copy:
+    src: "{{ canary_beat_source_dir }}/canary_beat.py"
+    dest: "{{ canary_beat_app_dir }}/canary_beat.py"
+    remote_src: true
+    owner: root
+    group: root
+    mode: "0644"
+  when: canary_beat_enabled | bool
+
+- name: Settings file for the canary check-in (root only, no value written)
+  ansible.builtin.copy:
+    content: |
+      CANARY_BEAT_URL=
+      CANARY_BEAT_SOURCE=
+      CANARY_KEY=
+    dest: "{{ canary_beat_env_file }}"
+    owner: root
+    group: root
+    mode: "0600"
+    force: false
+  when: canary_beat_enabled | bool

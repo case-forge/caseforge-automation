@@ -1,0 +1,45 @@
+---
+ci_runners_enabled: false
+
+ci_runners_repo: case-forge/caseforge-automation
+ci_runners_user: "{{ ansible_user }}"
+ci_runners_home: "{{ checkout_owner_home }}"
+
+ci_runners_root: "{{ ci_runners_home }}/ci"
+ci_runners_tool_cache: "{{ ci_runners_root }}/tool-cache"
+
+ci_runners_local:
+  - name: example-runner
+    unit: "{{ ci_runners_unit_prefix }}.example-runner.service"
+    dir: actions-runner-example
+    suffix: ""
+
+ci_runners_extra: []
+
+ci_runners_pytest_workers: 12
+
+ci_runners_small: []
+
+ci_runners_retired: []
+
+ci_runners_memory_high: 10G
+ci_runners_memory_max: 12G
+
+ci_runners_overflow:
+  name: example-overflow-runner
+  unit: actions.runner.example-org-example-repo.example-overflow-runner.service
+  host: ubuntu@192.0.2.10
+  key: "{{ ci_runners_home }}/.ssh/example-overflow-key"
+
+ci_runners_controller:
+  min_local: 1
+  max_local: 2
+  reserve_mb: 5000
+  per_runner_mb: 10000
+  psi_stop: 25
+  idle_stop_s: 300
+  overflow_min_wait_s: 30
+  overflow_after_s: 180
+  overflow_idle_stop_s: 300
+
+ci_runners_unit_prefix: "actions.runner.{{ ci_runners_repo | replace('/', '-') }}"

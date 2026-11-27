@@ -1,0 +1,7 @@
+---
+egress_watch_enabled: false
+egress_watch_app_dir: /opt/caseforge-egress
+egress_watch_source_dir: "{{ repo_checkout_dir }}/tools/monitoring"
+egress_watch_units:
+  - ngene-egress-watch.service
+  - ngene-egress-watch.timer

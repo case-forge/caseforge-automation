@@ -1,0 +1,18 @@
+{{ ansible_managed | comment }}
+
+services:
+  cloudflared:
+    image: {{ cloudflared_image }}
+    container_name: {{ cloudflared_container_name }}
+    restart: unless-stopped
+    network_mode: host
+    entrypoint: ["cloudflared", "--no-autoupdate"]
+    command: ["tunnel", "--metrics", "{{ cloudflared_metrics_bind }}", "run"]
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:?TUNNEL_TOKEN must be set in {{ cloudflared_compose_dir }}/.env}
+    healthcheck:
+      test: ["CMD", "cloudflared", "tunnel", "--metrics", "{{ cloudflared_metrics_bind }}", "ready"]
+      interval: 60s
+      timeout: 10s
+      retries: 5
+      start_period: 60s

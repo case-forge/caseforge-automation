@@ -1,0 +1,43 @@
+---
+- name: "[caseforge] box stats push skipped for this box"
+  ansible.builtin.debug:
+    msg: "[caseforge] Skipping the box stats push: box_stats_push_enabled is not set for this host."
+  when: not (box_stats_push_enabled | bool)
+
+- name: Make the user unit directory
+  ansible.builtin.file:
+    path: "{{ box_stats_push_unit_dir }}"
+    state: directory
+    mode: "0755"
+  become: false
+  when: box_stats_push_enabled | bool
+
+- name: Copy the user units
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../systemd/user/{{ item }}"
+    dest: "{{ box_stats_push_unit_dir }}/{{ item }}"
+    mode: "0644"
+  become: false
+  loop: "{{ box_stats_push_units }}"
+  when: box_stats_push_enabled | bool
+
+- name: Read the login user's uid
+  ansible.builtin.command: id -u
+  register: box_stats_push_uid
+  changed_when: false
+  check_mode: false
+  become: false
+  when: box_stats_push_enabled | bool
+
+- name: Enable the box stats push timer
+  ansible.builtin.systemd:
+    name: caseforge-box-stats-push.timer
+    scope: user
+    enabled: true
+    state: started
+    daemon_reload: true
+  become: false
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ box_stats_push_uid.stdout }}"
+    DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ box_stats_push_uid.stdout }}/bus"
+  when: box_stats_push_enabled | bool

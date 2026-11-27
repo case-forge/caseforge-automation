@@ -1,0 +1,28 @@
+---
+
+luks_data_volume_device: ""
+
+luks_data_volume_mapper_name: caseforge-encrypted-data
+luks_data_volume_mount_path: /mnt/encrypted-data
+
+luks_data_volume_keyfile_path: "{{ ansible_user_dir }}/.luks-data-volume.key"
+
+luks_data_volume_tang_server_url: ""
+
+luks_data_volume_file_size_mb: ""
+luks_data_volume_file_size_fraction: 0.6
+luks_data_volume_file_size_cap_mb: 102400
+
+luks_data_volume_link_telemetry: true
+luks_data_volume_telemetry_link_path: "{{ repo_checkout_dir | default(checkout_owner_home ~ '/caseforge-automation') }}/telemetry"
+
+luks_data_volume_checkout_dir: "{{ repo_checkout_dir | default(checkout_owner_home ~ '/caseforge-automation') }}"
+luks_data_volume_linked_checkout_dirs:
+  - artifacts
+  - tmp
+
+luks_data_volume_crypttab_options: luks,discard
+
+luks_data_volume_guard_bare_mountpoint: true
+
+luks_data_volume_docker_requires_mount: true

@@ -1,0 +1,10 @@
+---
+- name: reload systemd manager
+  listen: reload systemd manager
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+
+- name: reload udev rules
+  listen: reload udev rules
+  ansible.builtin.shell: udevadm control --reload && udevadm trigger --action=change --subsystem-match=block
+  changed_when: true

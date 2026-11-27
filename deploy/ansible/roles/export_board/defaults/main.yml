@@ -1,0 +1,13 @@
+---
+export_board_enabled: false
+
+export_board_user: export-board
+export_board_group: export-board
+export_board_app_dir: /opt/export-board
+export_board_data_dir: /var/lib/export-board
+export_board_env_file: /etc/export-board.env
+export_board_source_dir: "{{ repo_checkout_dir }}/products/export-board"
+
+export_board_access_team_domain: "{{ lookup('env', 'EXPORT_BOARD_ACCESS_TEAM_DOMAIN') }}"
+export_board_access_aud: "{{ lookup('env', 'EXPORT_BOARD_ACCESS_AUD') }}"
+export_board_allowed_emails: "{{ lookup('env', 'EXPORT_BOARD_ALLOWED_EMAILS') }}"

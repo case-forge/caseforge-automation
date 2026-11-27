@@ -1,0 +1,57 @@
+---
+- name: "[caseforge] night shift skipped for this box"
+  ansible.builtin.debug:
+    msg: "[caseforge] Skipping the night shift: night_shift_enabled is not set for this host."
+  when: not (night_shift_enabled | bool)
+
+- name: Make the detached worktree of origin/main the units run from
+  ansible.builtin.command: "git -C {{ night_shift_checkout }} worktree add --detach {{ night_shift_worktree }} origin/main"
+  args:
+    creates: "{{ night_shift_worktree }}/.git"
+  become: false
+  when: night_shift_enabled | bool
+
+- name: Make the user unit directory
+  ansible.builtin.file:
+    path: "{{ night_shift_unit_dir }}"
+    state: directory
+    mode: "0755"
+  become: false
+  when: night_shift_enabled | bool
+
+- name: Link the user units to the in-repo copies
+  ansible.builtin.file:
+    src: "{{ night_shift_source_dir }}/{{ item }}"
+    dest: "{{ night_shift_unit_dir }}/{{ item }}"
+    state: link
+  become: false
+  loop: "{{ night_shift_units }}"
+  when: night_shift_enabled | bool
+
+- name: Keep the owner's user manager running when nobody is logged in
+  ansible.builtin.command: "loginctl enable-linger {{ ansible_user }}"
+  args:
+    creates: "/var/lib/systemd/linger/{{ ansible_user }}"
+  when: night_shift_enabled | bool
+
+- name: Read the login user's uid
+  ansible.builtin.command: id -u
+  register: night_shift_uid
+  changed_when: false
+  check_mode: false
+  become: false
+  when: night_shift_enabled | bool
+
+- name: Enable the night-shift and worktree-janitor timers
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    scope: user
+    enabled: true
+    state: started
+    daemon_reload: true
+  become: false
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ night_shift_uid.stdout }}"
+    DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ night_shift_uid.stdout }}/bus"
+  loop: "{{ night_shift_timers }}"
+  when: night_shift_enabled | bool

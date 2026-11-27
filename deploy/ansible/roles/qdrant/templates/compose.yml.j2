@@ -1,0 +1,37 @@
+
+services:
+  qdrant:
+    image: {{ qdrant_image }}
+    container_name: {{ qdrant_container_name }}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:{{ qdrant_http_port }}:6333"
+      - "127.0.0.1:{{ qdrant_grpc_port }}:6334"
+{% if qdrant_tailnet_ip %}
+      - "{{ qdrant_tailnet_ip }}:{{ qdrant_http_port }}:6333"
+      - "{{ qdrant_tailnet_ip }}:{{ qdrant_grpc_port }}:6334"
+{% endif %}
+{% if qdrant_api_key %}
+    environment:
+      QDRANT__SERVICE__API_KEY: "${QDRANT_API_KEY:?QDRANT_API_KEY must be set in ./.env}"
+{% if qdrant_readonly_api_key %}
+      QDRANT__SERVICE__READ_ONLY_API_KEY: "${QDRANT_READONLY_API_KEY:?QDRANT_READONLY_API_KEY must be set in ./.env}"
+{% endif %}
+{% endif %}
+    volumes:
+      - {{ qdrant_host_data_path if qdrant_use_luks_storage | bool else qdrant_volume_name }}:/qdrant/storage
+{% if qdrant_use_luks_storage | bool and qdrant_snapshots_subdir | length > 0 %}
+      - {{ qdrant_host_snapshots_path }}:/qdrant/snapshots
+{% endif %}
+    healthcheck:
+      test: ["CMD-SHELL", "timeout 3 bash -c '</dev/tcp/127.0.0.1/6333' || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+{% if not (qdrant_use_luks_storage | bool) %}
+
+volumes:
+  {{ qdrant_volume_name }}:
+    name: {{ qdrant_volume_name }}
+{% endif %}

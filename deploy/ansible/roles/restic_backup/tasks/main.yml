@@ -1,0 +1,92 @@
+---
+
+- name: Install restic, and age (tools/backup_crypto.py encrypts the OneDrive backups with it)
+  ansible.builtin.apt:
+    name:
+      - restic
+      - age
+    state: present
+
+- name: Install caseforge-restic-backup.service
+  ansible.builtin.template:
+    src: caseforge-restic-backup.service.j2
+    dest: /etc/systemd/system/caseforge-restic-backup.service
+    mode: "0644"
+  register: restic_backup_service_unit
+
+- name: Install caseforge-restic-backup.timer
+  ansible.builtin.copy:
+    src: caseforge-restic-backup.timer
+    dest: /etc/systemd/system/caseforge-restic-backup.timer
+    mode: "0644"
+  register: restic_backup_timer_unit
+
+- name: "[caseforge] restic-backup unit files"
+  block:
+    - name: Reload systemd if either unit changed
+      ansible.builtin.systemd:
+        daemon_reload: true
+      when: restic_backup_service_unit.changed or restic_backup_timer_unit.changed
+
+    - name: Enable and start caseforge-restic-backup.timer
+      ansible.builtin.systemd:
+        name: caseforge-restic-backup.timer
+        enabled: true
+        state: started
+
+    - name: Check for the restic password file
+      ansible.builtin.stat:
+        path: "{{ checkout_owner_home }}/.restic-password"
+      register: restic_backup_password_file
+
+    - name: Read CASEFORGE_RESTIC_PASSWORD from the generated env file, if the password file doesn't already exist
+      ansible.builtin.shell:
+        cmd: >
+          set -a; . {{ repo_checkout_dir }}/.secrets/caseforge-env 2>/dev/null; set +a;
+          printf '%s' "${CASEFORGE_RESTIC_PASSWORD:-}"
+        executable: /bin/bash
+      register: restic_backup_password_from_env
+      when: not restic_backup_password_file.stat.exists
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      become: false
+      no_log: true
+
+    - name: Write the restic password file from Key Vault
+      ansible.builtin.copy:
+        dest: "{{ checkout_owner_home }}/.restic-password"
+        content: "{{ restic_backup_password_from_env.stdout }}"
+        mode: "0600"
+      when:
+        - not restic_backup_password_file.stat.exists
+        - restic_backup_password_from_env is not skipped
+        - restic_backup_password_from_env.stdout | default('') | length > 0
+      no_log: true
+
+    - name: "[caseforge][WARN] no restic password file and none in Key Vault"
+      ansible.builtin.debug:
+        msg: >-
+          [caseforge][WARN] no {{ checkout_owner_home }}/.restic-password and
+          CASEFORGE_RESTIC_PASSWORD isn't in .secrets/caseforge-env either -- generate one,
+          store it in Proton Pass (CaseForge - CaseForge Infra vault) and Key Vault
+          as restic-backup-password, then run
+          'restic -r rclone:pcloud:Backups/caseforge-automation-{{ ansible_hostname }} init'
+          once before the timer's first fire.
+      when:
+        - not restic_backup_password_file.stat.exists
+        - restic_backup_password_from_env.stdout | default('') | length == 0
+
+    - name: "Check for an rclone pcloud: remote"
+      ansible.builtin.command: rclone listremotes
+      environment:
+        HOME: "{{ checkout_owner_home }}"
+      register: restic_backup_rclone_remotes
+      changed_when: false
+      check_mode: false
+      failed_when: false
+
+    - name: "[caseforge][WARN] no rclone pcloud: remote"
+      ansible.builtin.debug:
+        msg: "[caseforge][WARN] no rclone 'pcloud:' remote configured -- run 'rclone config' to add pCloud OAuth before the restic timer can succeed."
+      when: "'pcloud:' not in restic_backup_rclone_remotes.stdout_lines | default([])"

@@ -1,0 +1,7 @@
+---
+- name: "{{ raw_tool.name }}: download + install raw binary (idempotent, get_url only fetches if missing/changed)"
+  ansible.builtin.get_url:
+    url: "{{ raw_tool.url_template | replace('{arch}', raw_tool.arch_map[ansible_architecture]) }}"
+    dest: "{{ raw_tool.install_path }}"
+    mode: "0755"
+    force: false

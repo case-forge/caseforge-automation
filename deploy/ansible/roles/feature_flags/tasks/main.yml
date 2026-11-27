@@ -1,0 +1,12 @@
+---
+- name: Ensure the config directory exists
+  ansible.builtin.file:
+    path: "{{ feature_flags_path | dirname }}"
+    state: directory
+    mode: "0755"
+
+- name: Write the runtime feature-flag env file
+  ansible.builtin.template:
+    src: flags.env.j2
+    dest: "{{ feature_flags_path }}"
+    mode: "0644"

@@ -1,0 +1,16 @@
+
+.firm-page {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: var(--sp-4);
+  min-height: 100dvh;
+  color: var(--fg);
+}
+.firm-page--wide { max-width: 1760px; }
+.firm-page > p:first-child { margin: 0 0 var(--sp-2); }
+
+.firm-page a:not(.cf-btn) { color: var(--accent); }
+
+.client-lists-tabs { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin: 0 0 var(--sp-3); }
+.client-lists .results-pane { width: 100%; max-width: 46rem; }
+.settings-page .settings-box { max-width: 36rem; }
